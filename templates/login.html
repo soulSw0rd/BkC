@@ -34,14 +34,22 @@
 </head>
 <body>
     <header>
-        <h1>Bienvenue sur CryptoChain Go</h1>
+        <h1>Connexion sur CryptoChain Go</h1>
     </header>
     <main>
-        <nav>
-            <a href="/blockchain">Voir la Blockchain</a>
-            <a href="/stats">Statistiques</a>
-        </nav>
-        <p><a href="/logout">Se déconnecter</a></p>
+        <form action="/login-submit" method="post">
+            <label for="username">Utilisateur :</label>
+            <input type="text" id="username" name="username" required>
+            <br>
+            <label for="password">Mot de passe :</label>
+            <input type="password" id="password" name="password" required>
+            <br>
+            <button type="submit">Se connecter</button>
+        </form>
+        <form action="/signin-submit"method="post">
+            <button type="submit">Créer un compte</button>
+        </form>
+
     </main>
 </body>
 </html>
