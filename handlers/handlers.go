@@ -2,10 +2,12 @@ package handlers
 
 import (
 	"fmt"
-	"mon-projet/blockchain"
-	"mon-projet/utils"
+	"html/template"
 	"net/http"
 	"sync"
+
+	"BkC/blockchain"
+	"BkC/utils"
 )
 
 // Variables globales pour les statistiques
@@ -31,55 +33,17 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "text/html")
-	html := `
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <title>CryptoChain Go</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #1a1a1a;
-            color: white;
-            margin: 0;
-            padding: 0;
-        }
-        header {
-            background-color: #2b2b2b;
-            padding: 20px;
-            text-align: center;
-            border-bottom: 2px solid #5d1f8e;
-        }
-        h1 {
-            font-size: 2.5em;
-        }
-        main {
-            padding: 20px;
-            text-align: center;
-        }
-        nav a {
-            color: #5d1f8e;
-            font-size: 1.2em;
-            text-decoration: none;
-            margin: 10px;
-        }
-    </style>
-</head>
-<body>
-    <header>
-        <h1>Bienvenue sur CryptoChain Go</h1>
-    </header>
-    <main>
-        <nav>
-            <a href="/blockchain">Voir la Blockchain</a>
-            <a href="/stats">Statistiques</a>
-        </nav>
-    </main>
-</body>
-</html>`
-	fmt.Fprint(w, html)
+	// Charge le template de la page d'accueil
+	tmpl, err := template.ParseFiles("templates/home.html")
+	if err != nil {
+		http.Error(w, "Erreur lors du chargement de la page d'accueil", http.StatusInternalServerError)
+		return
+	}
+
+	// Exécute le template
+	if err := tmpl.Execute(w, nil); err != nil {
+		http.Error(w, "Erreur lors du rendu de la page", http.StatusInternalServerError)
+	}
 }
 
 // StatsHandler gère l'affichage des statistiques
@@ -99,46 +63,31 @@ func StatsHandler(bc *blockchain.Blockchain) http.HandlerFunc {
 		// Générer les statistiques
 		stats := generateStats(bc)
 
-		// Rendu HTML
-		w.Header().Set("Content-Type", "text/html")
-		html := fmt.Sprintf(`
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <title>Statistiques</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #1a1a1a;
-            color: white;
-            margin: 0;
-            padding: 0;
-        }
-        h1, h2 {
-            text-align: center;
-            color: #5d1f8e;
-        }
-        p {
-            font-size: 1.2em;
-        }
-        a {
-            color: #5d1f8e;
-            text-decoration: none;
-        }
-    </style>
-</head>
-<body>
-    <h1>Statistiques</h1>
-    <p>Visiteurs uniques : %d</p>
-    <p>Sessions actives : %d</p>
-    <h2>Dernier bloc</h2>
-    %s
-    <p><a href="/">Retour à l'accueil</a></p>
-</body>
-</html>
-`, stats.VisitorCount, stats.ActiveSessionCount, formatBlock(stats.LastBlock))
-		fmt.Fprint(w, html)
+		// Charge le template des statistiques
+		tmpl, err := template.ParseFiles("templates/stats.html")
+		if err != nil {
+			http.Error(w, "Erreur lors du chargement des statistiques", http.StatusInternalServerError)
+			return
+		}
+
+		// Formater le dernier bloc
+		lastBlockHTML := formatBlock(stats.LastBlock)
+
+		// Données à passer au template
+		data := struct {
+			VisitorCount       int
+			ActiveSessionCount int
+			LastBlock          string
+		}{
+			VisitorCount:       stats.VisitorCount,
+			ActiveSessionCount: stats.ActiveSessionCount,
+			LastBlock:          lastBlockHTML,
+		}
+
+		// Exécute le template avec les données
+		if err := tmpl.Execute(w, data); err != nil {
+			http.Error(w, "Erreur lors du rendu des statistiques", http.StatusInternalServerError)
+		}
 	}
 }
 

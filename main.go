@@ -1,11 +1,11 @@
 package main
 
 import (
+	"BkC/blockchain" // Package blockchain personnalisé
+	"BkC/handlers"   // Package pour les gestionnaires de requêtes HTTP
+	"BkC/utils"      // Package utilitaire pour les fonctions communes
 	"fmt"
 	"log"
-	"mon-projet/blockchain" // Package blockchain personnalisé
-	"mon-projet/handlers"   // Package pour les gestionnaires de requêtes HTTP
-	"mon-projet/utils"      // Package utilitaire pour les fonctions communes
 	"net/http"
 	"os"
 )
