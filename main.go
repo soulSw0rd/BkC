@@ -5,6 +5,7 @@ import (
 	"BkC/handlers"
 	"BkC/utils"
 	"fmt"
+	"html/template"
 	"log"
 	"net/http"
 	"os"
@@ -12,7 +13,7 @@ import (
 	"runtime"
 )
 
-// Fonction pour ouvrir automatiquement le navigateur
+// openBrowser ouvre le navigateur par défaut avec l'URL spécifiée.
 func openBrowser(url string) {
 	var cmd string
 	var args []string
@@ -21,7 +22,7 @@ func openBrowser(url string) {
 	case "windows":
 		cmd = "cmd"
 		args = []string{"/c", "start"}
-	case "darwin": // MacOS
+	case "darwin":
 		cmd = "open"
 	case "linux":
 		cmd = "xdg-open"
@@ -42,18 +43,34 @@ func main() {
 	}
 	defer utils.LogFile.Close()
 
+	// Initialisation de la blockchain.
 	bc := blockchain.NewBlockchain()
 
-	// Routes publiques
+	// Route par défaut : affiche la page d'accueil (acceuil.html)
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		tmpl, err := template.ParseFiles("templates/acceuil.html")
+		if err != nil {
+			http.Error(w, "Erreur lors du chargement de la page d'accueil", http.StatusInternalServerError)
+			return
+		}
+		tmpl.Execute(w, nil)
+	})
+
+	// Routes publiques.
 	http.HandleFunc("/login", handlers.LoginHandler)
 	http.HandleFunc("/login-submit", handlers.LoginSubmitHandler)
 	http.HandleFunc("/logout", handlers.LogoutHandler)
 
-	// Routes protégées
-	http.HandleFunc("/", handlers.HomeHandler)
-	http.HandleFunc("/blockchain", handlers.StatsHandler(bc)) // Protéger l'accès
+	// Route d'accueil après connexion.
+	http.HandleFunc("/home", handlers.HomeHandler)
 
-	// Ouvrir le navigateur après le démarrage du serveur
+	// Route pour la blockchain.
+	http.HandleFunc("/blockchain", handlers.BlockchainHandler(bc))
+
+	// Route pour les statistiques.
+	http.HandleFunc("/stats", handlers.StatsHandler(bc))
+
+	// Ouvre le navigateur automatiquement.
 	go func() {
 		log.Println("🌍 Ouverture du navigateur...")
 		openBrowser("http://localhost:8080")

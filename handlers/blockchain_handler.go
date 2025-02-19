@@ -9,18 +9,14 @@ import (
 	"sync"
 )
 
-var (
-	sessionMutex sync.Mutex
-	sessions     = make(map[string]*utils.UserSession)
-)
+var sessionMutex sync.Mutex // Protéger l'accès aux sessions dans ce handler
 
-// BlockchainHandler gère les requêtes sur la blockchain
+// BlockchainHandler gère les requêtes sur la blockchain.
 func BlockchainHandler(bc *blockchain.Blockchain) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		utils.LogRequest(r)
 		clientIP := utils.GetVisitorIP(r)
 
-		// Gestion des sessions
 		sessionMutex.Lock()
 		utils.ManageSession(clientIP, sessions, bc)
 		sessionMutex.Unlock()

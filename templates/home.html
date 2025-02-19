@@ -1,47 +1,56 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <title>CryptoChain Go</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #1a1a1a;
-            color: white;
-            margin: 0;
-            padding: 0;
-        }
-        header {
-            background-color: #2b2b2b;
-            padding: 20px;
-            text-align: center;
-            border-bottom: 2px solid #5d1f8e;
-        }
-        h1 {
-            font-size: 2.5em;
-        }
-        main {
-            padding: 20px;
-            text-align: center;
-        }
-        nav a {
-            color: #5d1f8e;
-            font-size: 1.2em;
-            text-decoration: none;
-            margin: 10px;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CryptoChain Go | Accueil</title>
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Script pour animations spécifiques à la page home -->
+  <script src="/static/js/home.js" defer></script>
 </head>
-<body>
-    <header>
-        <h1>Bienvenue sur CryptoChain Go</h1>
-    </header>
-    <main>
-        <nav>
-            <a href="/blockchain">Voir la Blockchain</a>
-            <a href="/stats">Statistiques</a>
-        </nav>
-        <p><a href="/logout">Se déconnecter</a></p>
-    </main>
+<body class="bg-gradient-to-r from-gray-900 to-black text-white">
+  <!-- Barre de navigation -->
+  <nav class="bg-black bg-opacity-50 p-4 fixed w-full top-0 shadow-lg flex justify-between items-center">
+    <a href="/home" class="text-xl font-bold text-purple-400">CryptoChain Go</a>
+    <div>
+      <a href="/blockchain" class="px-4 py-2 text-white hover:text-gray-300">🔗 Voir la Blockchain</a>
+      <a href="/stats" class="px-4 py-2 text-white hover:text-gray-300">📊 Statistiques</a>
+      <a href="/logout" class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg">🚪 Déconnexion</a>
+    </div>
+  </nav>
+
+  <!-- Section d'accueil / Hero -->
+  <section class="flex flex-col items-center justify-center h-screen text-center pt-20 px-6">
+    <h1 class="text-5xl font-extrabold text-white animate-fadeIn">Bienvenue sur CryptoChain Go</h1>
+    <p class="text-lg mt-4 opacity-80">Suivez les transactions et blocs en temps réel.</p>
+    <a href="/blockchain" class="mt-6 px-6 py-3 bg-purple-500 text-white font-bold rounded-lg hover:bg-purple-600 transition transform hover:scale-105">
+      Explorer la Blockchain
+    </a>
+  </section>
+
+  <!-- Tableau de bord interactif -->
+  <section class="container mx-auto px-6 pb-12">
+    <h2 class="text-3xl font-bold text-center mb-8">Dernières Statistiques</h2>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="p-6 bg-gray-800 rounded-lg shadow-lg text-center">
+        <h3 class="text-2xl font-semibold">🔗 Blocs minés</h3>
+        <p class="text-4xl font-bold mt-2" id="block-count">0</p>
+      </div>
+      <div class="p-6 bg-gray-800 rounded-lg shadow-lg text-center">
+        <h3 class="text-2xl font-semibold">👥 Utilisateurs actifs</h3>
+        <p class="text-4xl font-bold mt-2" id="user-count">0</p>
+      </div>
+      <div class="p-6 bg-gray-800 rounded-lg shadow-lg text-center">
+        <h3 class="text-2xl font-semibold">⚡ Transactions</h3>
+        <p class="text-4xl font-bold mt-2" id="tx-count">0</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pied de page -->
+  <footer class="text-center py-6 text-gray-400">
+    CryptoChain Go © 2025 - Sécurisé et transparent
+  </footer>
 </body>
 </html>

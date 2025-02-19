@@ -1,55 +1,36 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <title>CryptoChain Go</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #1a1a1a;
-            color: white;
-            margin: 0;
-            padding: 0;
-        }
-        header {
-            background-color: #2b2b2b;
-            padding: 20px;
-            text-align: center;
-            border-bottom: 2px solid #5d1f8e;
-        }
-        h1 {
-            font-size: 2.5em;
-        }
-        main {
-            padding: 20px;
-            text-align: center;
-        }
-        nav a {
-            color: #5d1f8e;
-            font-size: 1.2em;
-            text-decoration: none;
-            margin: 10px;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Connexion | CryptoChain Go</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/static/js/login.js" defer></script>
 </head>
-<body>
-    <header>
-        <h1>Connexion sur CryptoChain Go</h1>
-    </header>
-    <main>
-        <form action="/login-submit" method="post">
-            <label for="username">Utilisateur :</label>
-            <input type="text" id="username" name="username" required>
-            <br>
-            <label for="password">Mot de passe :</label>
-            <input type="password" id="password" name="password" required>
-            <br>
-            <button type="submit">Se connecter</button>
-        </form>
-        <form action="/signin-submit"method="post">
-            <button type="submit">Créer un compte</button>
-        </form>
-
-    </main>
+<body class="bg-gradient-to-r from-gray-900 to-black text-white flex items-center justify-center h-screen">
+  <div class="w-full max-w-md bg-gray-800 rounded-lg shadow-lg p-8">
+    <div class="flex justify-end">
+      <button id="themeToggle" class="text-yellow-400 hover:text-yellow-500 transition duration-300">
+        🌞/🌙
+      </button>
+    </div>
+    <h1 class="text-3xl font-bold text-center text-purple-400 mb-6">Connexion</h1>
+    <form action="/login-submit" method="post" class="space-y-4">
+      <div class="relative">
+        <input type="text" id="username" name="username" required class="w-full px-4 py-3 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-purple-500 focus:ring-2 focus:ring-purple-500 focus:outline-none transition duration-300" placeholder="Nom d'utilisateur">
+        <span class="absolute right-4 top-3 text-gray-400" id="userIcon">👤</span>
+      </div>
+      <div class="relative">
+        <input type="password" id="password" name="password" required class="w-full px-4 py-3 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-purple-500 focus:ring-2 focus:ring-purple-500 focus:outline-none transition duration-300" placeholder="Mot de passe">
+        <span class="absolute right-4 top-3 text-gray-400" id="passwordIcon">🔒</span>
+      </div>
+      <button type="submit" class="w-full bg-purple-500 hover:bg-purple-600 text-white font-bold py-3 rounded-lg transition duration-300 transform hover:scale-105">
+        Se connecter
+      </button>
+    </form>
+    <p class="text-center text-gray-400 mt-4">
+      Pas encore inscrit ? <a href="/register" class="text-purple-400 hover:text-purple-500">Créer un compte</a>
+    </p>
+  </div>
 </body>
 </html>
