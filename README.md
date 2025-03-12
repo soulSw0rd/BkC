@@ -1,7 +1,3 @@
-Voici un exemple de fichier `README.md` pour ton code :
-
----
-
 # CryptoChain Go
 
 CryptoChain Go est une implémentation simple de blockchain en Go, combinée avec un serveur HTTP pour afficher des informations sur la blockchain et ses statistiques d'utilisation. L'application permet de créer des blocs, de les ajouter à la chaîne et de suivre les sessions des utilisateurs.
