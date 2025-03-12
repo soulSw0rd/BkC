@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Piste d'audit de curi | CryptoChain Go</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: {
+              50: '#f5f3ff',
+              100: '#ede9fe',
+              200: '#ddd6fe',
+              300: '#c4b5fd',
+              400: '#a78bfa',
+              500: '#8b5cf6',
+              600: '#7c3aed',
+              700: '#6d28d9',
+              800: '#5b21b6',
+              900: '#4c1d95',
+            },
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .glass-effect {
+      background: rgba(30, 27, 75, 0.8);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-gray-900 via-indigo-900 to-purple-900 text-white min-h-screen">
+  <!-- Barre de navigation -->
+  <nav class="glass-effect p-4 fixed w-full top-0 shadow-lg flex justify-between items-center z-10">
+    <a href="/home" class="text-xl font-bold text-primary-400">CryptoChain Go</a>
+    <div class="flex space-x-2">
+      <a href="/security/dashboard" class="px-3 py-2 rounded-lg text-white hover:bg-primary-700 transition">?? curi</a>
+      <a href="/blockchain" class="px-3 py-2 rounded-lg text-white hover:bg-primary-700 transition">?? Blockchain</a>
+      <a href="/transactions" class="px-3 py-2 rounded-lg text-white hover:bg-primary-700 transition">?? Transactions</a>
+      <a href="/home" class="px-3 py-2 rounded-lg text-white hover:bg-primary-700 transition">?? Accueil</a>
+      <a href="/logout" class="px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition">?? connexion</a>
+    </div>
+  </nav>
+
+  <!-- Contenu principal -->
+  <div class="container mx-auto px-4 pt-24 pb-12">
+    <!-- Titre de la page -->
+    <div class="text-center mb-10">
+      <h1 class="text-4xl font-bold text-white mb-2">?? Piste d'audit de curi</h1>
+      <p class="text-lg text-indigo-200">Historique complet desnements de curi</p>
+    </div>
+
+    <!-- Filtres de recherche -->
+    <div class="glass-effect rounded-xl shadow-xl p-6 mb-8">
+      <h2 class="text-xl font-semibold text-primary-300 mb-4">Filtres</h2>
+      
+      <form action="/security/audit" method="get" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <!-- Filtre par type dnement -->
+        <div>
+          <label for="event_type" class="block text-sm font-medium text-gray-300 mb-1">Type dnement</label>
+          <select id="event_type" name="event_type" class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+            <option value="">Tous</option>
+            {{range $type, $label := .EventTypes}}
+              <option value="{{$type}}">{{$label}}</option>
+            {{end}}
+          </select>
+        </div>
+        
+        <!-- Filtre par niveau de risque -->
+        <div>
+          <label for="risk_level" class="block text-sm font-medium text-gray-300 mb-1">Niveau de risque</label>
+          <select id="risk_level" name="risk_level" class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+            <option value="">Tous</option>
+            {{range $level, $label := .RiskLevels}}
+              <option value="{{$level}}">{{$label}}</option>
+            {{end}}
+          </select>
+        </div>
+        
+        <!-- Filtres de date -->
+        <div>
+          <label for="date_from" class="block text-sm font-medium text-gray-300 mb-1">Du</label>
+          <input type="date" id="date_from" name="date_from" class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+        </div>
+        
+        <div>
+          <label for="date_to" class="block text-sm font-medium text-gray-300 mb-1">Au</label>
+          <input type="date" id="date_to" name="date_to" class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+        </div>
+        
+        <!-- Boutons -->
+        <div class="md:col-span-4 flex justify-end mt-2">
+          <button type="reset" class="px-4 py-2 mr-2 border border-gray-600 text-gray-300 rounded-lg hover:bg-gray-700 transition">initialiser</button>
+          <button type="submit" class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition">Filtrer</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Tableau des entes d'audit -->
+    <div class="glass-effect rounded-xl shadow-xl p-6 mb-8">
+      <h2 class="text-xl font-semibold text-primary-300 mb-4">Historique d'audit</h2>
+      
+      {{if eq (len .AuditEntries) 0}}
+        <div class="text-center py-12">
+          <div class="text-6xl mb-4">??</div>
+          <p class="text-gray-300">Aucune ente d'audit troue</p>
+        </div>
+      {{else}}
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead>
+              <tr class="border-b border-gray-700">
+                <th class="px-4 py-2 text-left">Horodatage</th>
+                <th class="px-4 py-2 text-left">Type</th>
+                <th class="px-4 py-2 text-left">Utilisateur</th>
+                <th class="px-4 py-2 text-left">Adresse IP</th>
+                <th class="px-4 py-2 text-left">Description</th>
+                <th class="px-4 py-2 text-center">Risque</th>
+                <th class="px-4 py-2 text-center">tails</th>
+              </tr>
+            </thead>
+            <tbody>
+              {{range .AuditEntries}}
+                <tr class="border-b border-gray-800 hover:bg-gray-800/30">
+                  <td class="px-4 py-3 text-sm">{{.Timestamp.Format "02/01/2006 15:04:05"}}</td>
+                  <td class="px-4 py-3">
+                    {{if eq .Type "LOGIN"}}
+                      <span class="text-green-400">Connexion</span>
+                    {{else if eq .Type "LOGOUT"}}
+                      <span class="text-blue-400">connexion</span>
+                    {{else if eq .Type "LOGIN_FAILEDchec connexion</span>
+                    {{else if eq .Type "BLOCK_CREATED"}}
+                      <span class="text-primary-400">Bloc </span>
+                    {{else if eq .Type "BLOCK_MINED"}}
+                      <span class="text-primary-500">Bloc mi</span>
+                    {{else if eq .Type "TRANSACTION_ADDED"}}
+                      <span class="text-green-500">Transaction</span>
+                    {{else if eq .Type "SECURITY_ALERT"}}
+                      <span class="text-red-400">Alerte</span>
+                    {{else}}
+                      {{.Type}}
+                    {{end}}
+                  </td>
+                  <td class="px-4 py-3">{{.UserID}}</td>
+                  <td class="px-4 py-3 text-gray-400">{{.IPAddress}}</td>
+                  <td class="px-4 py-3">{{.Description}}</td>
+                  <td class="px-4 py-3 text-center">
+                    {{if eq .RiskLevel 1}}
+                      <span class="px-2 py-1 bg-green-500/20 text-green-300 rounded-full text-xs">Faible</span>
+                    {{else if eq .RiskLevel 2}}
+                      <span class="px-2 py-1 bg-yellow-500/20 text-yellow-300 rounded-full text-xs">Moyen</span>
+                    {{else if eq .RiskLevel 3}}le</span>
+                    {{else}}
+                      <span class="px-2 py-1 bg-red-600/20 text-red-300 rounded-full text-xs">Critique</span>
+                    {{end}}
+                  </td>
+                  <td class="px-4 py-3 text-center">
+                    <button class="text-primary-400 hover:text-primary-300 text-sm" 
+                            onclick="showDetails('{{.Hash}}')">
+                      tails
+                    </button>
+                  </td>
+                </tr>
+              {{end}}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination -->
+        <div class="flex justify-between items-center mt-6">
+          <div class="text-sm text-gray-400">
+            Affichage de {{len .AuditEntries}} entes sur {{.TotalEntries}}
+          </div>
+          <div class="flex space-x-2">
+            {{if gt .CurrentPage 1}}
+              <a href="/security/audit?page={{subtract .CurrentPage 1}}" class="px-3 py-1 bg-gray-800 text-white rounded hover:bg-gray-700 transition">Pdent</a>
+            {{else}}
+              <span class="px-3 py-1 bg-gray-800 text-gray-500 rounded cursor-not-allowed">Pdent</span>
+            {{end}}
+            
+            <span class="px-3 py-1 bg-primary-700 text-white rounded">{{.CurrentPage}}</span>
+            
+            {{if lt (multiply .CurrentPage .PageSize) .TotalEntries}}
+              <a href="/security/audit?page={{add .CurrentPage 1}}" class="px-3 py-1 bg-gray-800 text-white rounded hover:bg-gray-700 transition">Suivant</a>
+            {{else}}
+              <span class="px-3 py-1 bg-gray-800 text-gray-500 rounded cursor-not-allowed">Suivant</span>
+            {{end}}
+          </div>
+        </div>
+      {{end}}
+    </div>
+
+    <!-- Statistiques d'audit -->
+    <div class="glass-effect rounded-xl shadow-xl p-6">
+      <h2 class="text-xl font-semibold text-primary-300 mb-4">Statistiques d'audit</h2>
+      
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="bg-gray-800/70 p-5 rounded-lg text-center">
+          <div class="text-4xl font-bold text-primary-400 mb-2">
+            <span id="totalEvents">-</span>
+          </div>nements totaux</p>
+        </div>
+        
+        <div class="bg-gray-800/70 p-5 rounded-lg text-center">
+          <div class="text-4xl font-bold text-yellow-400 mb-2">
+            <span id="securityAlerts">-</span>
+          </div>
+          <p class="text-gray-300">Alertes de curi</p>
+        </div>
+        
+        <div class="bg-gray-800/70 p-5 rounded-lg text-center">
+          <div class="text-4xl font-bold text-red-400 mb-2">
+            <span id="highRiskEvents">-</span>
+          </div>nements v risquele</p>
+        </div>
+      </div>
+      
+      <!-- Graphique desnements -->
+      <div class="bg-gray-800/70 p-5 rounded-lg">
+        <h3 class="text-lg font-semibold text-primary-200 mb-4">partition desnements</h3>
+        <div class="h-64">
+          <canvas id="eventChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal des tails -->
+  <div id="detailsModal" class="fixed inset-0 bg-black/80 flex items-center justify-center z-50 hidden">
+    <div class="glass-effect rounded-xl shadow-2xl p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-2xl font-semibold text-primary-300">tails de lnement</h2>
+        <button onclick="closeModal()" class="text-gray-400 hover:text-white">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      
+      <div id="modalContent" class="space-y-4">
+        <!-- Le contenu sera rempli par JavaScript -->
+      </div>
+      
+      <div class="mt-6 flex justify-end">
+        <button onclick="closeModal()" class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition">
+          Fermer
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pied de page -->
+  <footer class="text-center py-6 text-indigo-400">
+    CryptoChain Go 8 2025 - curi et transparence
+  </footer>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Initialiser les statistiques
+      const totalEvents = {{.TotalEntries}};
+      document.getElementById('totalEvents').textContent = totalEvents;
+      
+      // Exemple de dones pour les statistiques (ntSv'Ddv Rv v  remplacer par des dones elles)
+      const securityAlerts = Math.floor(totalEvents * 0.15);
+      const highRiskEvents = Math.floor(totalEvents * 0.05);
+      
+      document.getElementById('securityAlerts').textContent = securityAlerts;
+      document.getElementById('highRiskEvents').textContent = highRiskEvents;
+      
+      // Cer le graphique desnements
+      const ctx = document.getElementById('eventChart').getContext('2d');
+      new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Connexions', 'Transactions', 'Orations blockchain', 'Alertes de curi', 'Autres'],
+          datasets: [{
+            data: [35, 25, 20, 15, 5],
+            backgroundColor: [
+              '#8b5cf6', // Connexions (Primary)
+              '#10b981', // Transactions (Green)
+              '#3b82f6', // Orations blockchain (Blue)
+              '#ef4444', // Alertes de curi (Red)
+              '#6b7280', // Autres (Gray)
+            ],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'right',
+              labels: {
+                color: 'white',
+                padding: 20
+              }
+            }
+          }
+        }
+      });
+    });
+    
+    // Fonction pour afficher les tails d'une ente d'audit
+    function showDetails(hash) {
+      // En production, on curerait les tails via une reqte AJAX
+      // Exemple pour la monstration
+      const mockDetails = {
+        hash: hash,
+        timestamp: new Date().toLocaleString(),
+        type: "LOGIN",
+        user: "admin",
+        ip: "192.168.1.1",
+        description: "Connexion ussie",
+        risk_level: "Faible",
+        data: {
+          browser: "Chrome 98.0.4758.102",
+          os: "Windows 10",
+          location: "Paris, France",
+          success: true
+        },
+        prev_hash: "8a7b6c5d4e3f2g1h"
+      };
+      
+      // Construire le contenu du modal
+      const content = `
+        <div class="space-y-3">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <p class="text-gray-400 text-sm">Hash</p>
+              <p class="font-mono text-white break-all">${mockDetails.hash}</p>
+            </div>
+            <div>
+              <p class="text-gray-400 text-sm">Hash pdent</p>
+              <p class="font-mono text-white break-all">${mockDetails.prev_hash}</p>
+            </div>
+          </div>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            <div>
+              <p class="text-gray-400 text-sm">Utilisateur</p>
+              <p class="text-white">${mockDetails.user}</p>
+            </div>
+            <div>
+              <p class="text-gray-400 text-sm">Adresse IP</p>
+              <p class="text-white">${mockDetails.ip}</p>
+            </div>
+          </div>
+          
+          <div class="mt-4">
+            <p class="text-gray-400 text-sm">Description</p>
+            <p class="text-white">${mockDetails.description}</p>
+          </div>
+          
+          <div class="mt-4">
+            <p class="text-gray-400 text-sm">Dones additionnelles</p>
+            <div class="bg-gray-900/70 p-4 rounded-lg">
+              <pre class="text-white text-sm overflow-auto">${JSON.stringify(mockDetails.data, null, 2)}</pre>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      document.getElementById('modalContent').innerHTML = content;
+      document.getElementById('detailsModal').classList.remove('hidden');
+    }
+    
+    // Fonction pour fermer le modal
+    function closeModal() {
+      document.getElementById('detailsModal').classList.add('hidden');
+    }
+    
+    // Fermer le modal en cliquant en dehors
+    document.getElementById('detailsModal').addEventListener('click', function(event) {
+      if (event.target === this) {
+        closeModal();
+      }
+    });
+    
+    // Fonctions helper pour la pagination
+    function subtract(a, b) {
+      return a - b;
+    }
+    
+    function add(a, b) {
+      return a + b;
+    }
+    
+    function multiply(a, b) {
+      return a * b;
+    }
+  </script>
+</body>
+</html>ncrrddprrdtsptspv rrn
+          <p class="text-gray-300">tsv
+          <p class="text-gray-300">crcrrDv
+                      <span class="px-2 py-1 bg-red-500/20 text-red-300 rounded-full text-xs">ncr"}}
+                      <span class="text-yellow-400">DDvrrRv'v'tsv tsDtSts

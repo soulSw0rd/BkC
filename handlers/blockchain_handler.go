@@ -29,7 +29,12 @@ func BlockchainHandler(bc *blockchain.Blockchain) http.HandlerFunc {
 				http.Error(w, "Invalid input", http.StatusBadRequest)
 				return
 			}
-			bc.AddBlock(input.Data, 4)
+			// Utiliser MineBlock au lieu de AddBlock
+			_, err := bc.MineBlock(clientIP, input.Data)
+			if err != nil {
+				http.Error(w, "Erreur lors de l'ajout du bloc: "+err.Error(), http.StatusInternalServerError)
+				return
+			}
 			fmt.Fprintf(w, "Nouveau bloc ajouté !")
 		} else if r.Method == "GET" {
 			w.Header().Set("Content-Type", "application/json")

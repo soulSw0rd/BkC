@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nouvelle Transaction | CryptoChain Go</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/static/css/main.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f5f3ff',
+                            100: '#ede9fe',
+                            200: '#ddd6fe',
+                            300: '#c4b5fd',
+                            400: '#a78bfa',
+                            500: '#8b5cf6',
+                            600: '#7c3aed',
+                            700: '#6d28d9',
+                            800: '#5b21b6',
+                            900: '#4c1d95',
+                        },
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gradient-to-br from-gray-900 via-indigo-900 to-purple-900 text-white min-h-screen">
+    <!-- Barre de navigation -->
+    <nav class="glass-effect p-4 fixed w-full top-0 shadow-lg flex justify-between items-center z-10">
+        <a href="/home" class="text-xl font-bold text-primary-400">CryptoChain Go</a>
+        <div class="flex space-x-2">
+            <a href="/blockchain" class="px-3 py-2 rounded-lg text-white hover:bg-primary-700 transition">🔗 Blockchain</a>
+            <a href="/transactions" class="px-3 py-2 rounded-lg text-white hover:bg-primary-700 transition">💸 Transactions</a>
+            <a href="/stats" class="px-3 py-2 rounded-lg text-white hover:bg-primary-700 transition">📊 Stats</a>
+            <a href="/home" class="px-3 py-2 rounded-lg text-white hover:bg-primary-700 transition">🏠 Accueil</a>
+            <a href="/logout" class="px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition">🚪 Déconnexion</a>
+        </div>
+    </nav>
+
+    <!-- Contenu principal -->
+    <div class="container mx-auto px-4 pt-24 pb-12">
+        <!-- Titre de la page -->
+        <div class="text-center mb-10">
+            <h1 class="text-4xl font-bold text-white mb-2">💸 Nouvelle Transaction</h1>
+            <p class="text-lg text-indigo-200">Effectuez un transfert de BCK en toute sécurité</p>
+        </div>
+
+        <!-- Formulaire de transaction -->
+        <div class="max-w-2xl mx-auto">
+            <div class="glass-effect rounded-xl shadow-2xl p-8">
+                <form id="transactionForm" data-endpoint="/api/transactions" class="space-y-6">
+                    <!-- Solde actuel -->
+                    <div class="mb-8 text-center">
+                        <p class="text-indigo-300 mb-2">Votre solde actuel</p>
+                        <p class="text-4xl font-bold">{{printf "%.2f" .Balance}} <span class="text-xl text-indigo-300">BCK</span></p>
+                    </div>
+
+                    <!-- Destinataire -->
+                    <div class="form-group">
+                        <label for="recipient" class="block text-sm font-medium text-indigo-200 mb-2">Destinataire</label>
+                        <input type="text" id="recipient" name="recipient" required
+                            class="w-full bg-indigo-900/50 border border-indigo-700 rounded-lg px-4 py-3 text-white placeholder-indigo-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
+                            placeholder="Adresse du destinataire">
+                    </div>
+
+                    <!-- Montant -->
+                    <div class="form-group">
+                        <label for="amount" class="block text-sm font-medium text-indigo-200 mb-2">Montant (BCK)</label>
+                        <div class="relative">
+                            <input type="number" id="amount" name="amount" required step="0.01" min="0.01" max="{{.Balance}}"
+                                class="w-full bg-indigo-900/50 border border-indigo-700 rounded-lg px-4 py-3 text-white placeholder-indigo-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
+                                placeholder="0.00">
+                            <span class="absolute right-4 top-3 text-indigo-400">BCK</span>
+                        </div>
+                    </div>
+
+                    <!-- Message (optionnel) -->
+                    <div class="form-group">
+                        <label for="message" class="block text-sm font-medium text-indigo-200 mb-2">Message (optionnel)</label>
+                        <textarea id="message" name="message"
+                            class="w-full bg-indigo-900/50 border border-indigo-700 rounded-lg px-4 py-3 text-white placeholder-indigo-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
+                            placeholder="Ajoutez un message à votre transaction" rows="3"></textarea>
+                    </div>
+
+                    <!-- Bouton de soumission -->
+                    <div class="mt-8">
+                        <button type="submit"
+                            class="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold py-4 px-6 rounded-lg transition transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-indigo-900">
+                            Envoyer la transaction
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Informations supplémentaires -->
+            <div class="mt-8 text-center text-indigo-300 text-sm">
+                <p>Les transactions sont généralement confirmées en moins de 5 minutes.</p>
+                <p class="mt-2">Des frais de transaction de 0.1% seront appliqués.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pied de page -->
+    <footer class="text-center py-6 text-indigo-400">
+        CryptoChain Go © 2025 - Sécurisé et transparent
+    </footer>
+
+    <!-- Scripts -->
+    <script src="/static/js/main.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('transactionForm');
+            const amountInput = document.getElementById('amount');
+            const maxBalance = {{.Balance}};
+
+            // Validation du montant en temps réel
+            amountInput.addEventListener('input', (e) => {
+                const amount = parseFloat(e.target.value);
+                if (amount > maxBalance) {
+                    amountInput.setCustomValidity(`Le montant ne peut pas dépasser votre solde de ${maxBalance} BCK`);
+                } else if (amount <= 0) {
+                    amountInput.setCustomValidity('Le montant doit être supérieur à 0');
+                } else {
+                    amountInput.setCustomValidity('');
+                }
+            });
+
+            // Gestion de la soumission du formulaire
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const submitButton = form.querySelector('button[type="submit"]');
+                submitButton.disabled = true;
+                submitButton.innerHTML = 'Transaction en cours...';
+
+                try {
+                    const formData = new FormData(form);
+                    const transaction = await TransactionManager.createTransaction({
+                        recipient: formData.get('recipient'),
+                        amount: parseFloat(formData.get('amount')),
+                        message: formData.get('message')
+                    });
+
+                    window.notifications.show('Transaction envoyée avec succès !', 'success');
+                    setTimeout(() => {
+                        window.location.href = '/transactions';
+                    }, 1500);
+                } catch (error) {
+                    window.notifications.show('Erreur lors de l\'envoi de la transaction', 'error');
+                    submitButton.disabled = false;
+                    submitButton.innerHTML = 'Envoyer la transaction';
+                }
+            });
+        });
+    </script>
+</body>
+</html> 

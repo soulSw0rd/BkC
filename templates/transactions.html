@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Transactions | CryptoChain Go</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: {
+              50: '#f5f3ff',
+              100: '#ede9fe',
+              200: '#ddd6fe',
+              300: '#c4b5fd',
+              400: '#a78bfa',
+              500: '#8b5cf6',
+              600: '#7c3aed',
+              700: '#6d28d9',
+              800: '#5b21b6',
+              900: '#4c1d95',
+            },
+          },
+          animation: {
+            'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .glass-effect {
+      background: rgba(30, 27, 75, 0.8);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .transaction-row:hover {
+      background: rgba(139, 92, 246, 0.1);
+      transform: translateY(-2px);
+      transition: all 0.2s ease;
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-gray-900 via-indigo-900 to-purple-900 text-white min-h-screen">
+  <!-- Barre de navigation -->
+  <nav class="glass-effect p-4 fixed w-full top-0 shadow-lg flex justify-between items-center z-10">
+    <a href="/home" class="text-xl font-bold text-primary-400">CryptoChain Go</a>
+    <div class="flex space-x-2">
+      <a href="/blockchain" class="px-3 py-2 rounded-lg text-white hover:bg-primary-700 transition">🔗 Blockchain</a>
+      <a href="/transactions/new" class="px-3 py-2 rounded-lg text-white hover:bg-primary-700 transition">💸 Nouvelle Transaction</a>
+      <a href="/stats" class="px-3 py-2 rounded-lg text-white hover:bg-primary-700 transition">📊 Stats</a>
+      <a href="/home" class="px-3 py-2 rounded-lg text-white hover:bg-primary-700 transition">🏠 Accueil</a>
+      <a href="/logout" class="px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition">🚪 Déconnexion</a>
+    </div>
+  </nav>
+
+  <!-- Contenu principal -->
+  <div class="container mx-auto px-4 pt-24 pb-12">
+    <!-- Titre de la page -->
+    <div class="text-center mb-10">
+      <h1 class="text-4xl font-bold text-white mb-2">💸 Transactions</h1>
+      <p class="text-lg text-indigo-200">Historique de vos transactions</p>
+    </div>
+
+    <!-- Carte du solde -->
+    <div class="max-w-3xl mx-auto mb-8">
+      <div class="bg-gradient-to-r from-primary-800 to-indigo-800 rounded-xl shadow-2xl p-6 relative overflow-hidden">
+        <div class="absolute top-0 right-0 w-40 h-40 bg-white opacity-5 rounded-full -mt-10 -mr-10"></div>
+        <div class="flex justify-between items-center relative z-10">
+          <div>
+            <h2 class="text-xl font-semibold text-primary-200">Votre Solde</h2>
+            <p class="text-4xl font-bold text-white mt-2">{{printf "%.2f" .Balance}} <span class="text-xl text-indigo-300">BCK</span></p>
+            <p class="text-indigo-300 mt-2">Compte: {{.Username}}</p>
+          </div>
+          <a href="/transactions/new" class="bg-primary-600 hover:bg-primary-700 text-white font-bold py-3 px-6 rounded-lg transition transform hover:scale-105 shadow-lg">
+            Nouvelle Transaction
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Liste des transactions -->
+    <div class="max-w-4xl mx-auto">
+      <!-- En attente -->
+      {{if gt .PendingCount 0}}
+      <div class="mb-6">
+        <h2 class="text-2xl font-semibold mb-4 text-yellow-300">📩 Transactions en attente ({{.PendingCount}})</h2>
+        <div class="glass-effect rounded-xl shadow-xl overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full">
+              <thead>
+                <tr class="border-b border-indigo-700">
+                  <th class="py-3 px-4 text-left">ID</th>
+                  <th class="py-3 px-4 text-left">De</th>
+                  <th class="py-3 px-4 text-left">Vers</th>
+                  <th class="py-3 px-4 text-right">Montant</th>
+                  <th class="py-3 px-4 text-right">Date</th>
+                  <th class="py-3 px-4 text-right">Statut</th>
+                </tr>
+              </thead>
+              <tbody>
+                {{range .Transactions}}
+                  {{if not .Confirmed}}
+                  <tr class="transaction-row border-b border-indigo-800/30">
+                    <td class="py-3 px-4 text-xs text-gray-400">{{slice .ID 0 8}}...</td>
+                    <td class="py-3 px-4">
+                      <div class="flex items-center">
+                        <span class="mr-2">{{.FromIcon}}</span>
+                        <span>{{.From}}</span>
+                      </div>
+                    </td>
+                    <td class="py-3 px-4">{{.To}}</td>
+                    <td class="py-3 px-4 text-right {{.AmountClass}}">{{printf "%.2f" .Amount}} BCK</td>
+                    <td class="py-3 px-4 text-right text-gray-400" title="{{.Timestamp}}">{{.TimeAgo}}</td>
+                    <td class="py-3 px-4 text-right">
+                      <span class="bg-yellow-500/20 text-yellow-300 py-1 px-2 rounded-full text-xs">En attente</span>
+                    </td>
+                  </tr>
+                  {{end}}
+                {{end}}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      {{end}}
+
+      <!-- Transactions confirmées -->
+      <div>
+        <h2 class="text-2xl font-semibold mb-4 text-green-300">✅ Transactions confirmées</h2>
+        <div class="glass-effect rounded-xl shadow-xl overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full">
+              <thead>
+                <tr class="border-b border-indigo-700">
+                  <th class="py-3 px-4 text-left">ID</th>
+                  <th class="py-3 px-4 text-left">De</th>
+                  <th class="py-3 px-4 text-left">Vers</th>
+                  <th class="py-3 px-4 text-right">Montant</th>
+                  <th class="py-3 px-4 text-right">Date</th>
+                  <th class="py-3 px-4 text-right">Bloc</th>
+                </tr>
+              </thead>
+              <tbody>
+                {{range .Transactions}}
+                  {{if .Confirmed}}
+                  <tr class="transaction-row border-b border-indigo-800/30">
+                    <td class="py-3 px-4 text-xs text-gray-400">{{slice .ID 0 8}}...</td>
+                    <td class="py-3 px-4">
+                      <div class="flex items-center">
+                        <span class="mr-2">{{.FromIcon}}</span>
+                        <span>{{.From}}</span>
+                      </div>
+                    </td>
+                    <td class="py-3 px-4">{{.To}}</td>
+                    <td class="py-3 px-4 text-right {{.AmountClass}}">{{printf "%.2f" .Amount}} BCK</td>
+                    <td class="py-3 px-4 text-right text-gray-400" title="{{.Timestamp}}">{{.TimeAgo}}</td>
+                    <td class="py-3 px-4 text-right">
+                      <a href="/blockchain#block-{{.BlockIndex}}" class="text-primary-400 hover:text-primary-300 transition">
+                        Bloc #{{.BlockIndex}}
+                      </a>
+                    </td>
+                  </tr>
+                  {{end}}
+                {{end}}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pas de transactions -->
+      {{if eq (len .Transactions) 0}}
+      <div class="text-center py-12">
+        <div class="text-6xl mb-4">🔍</div>
+        <h3 class="text-2xl font-semibold mb-2">Aucune transaction trouvée</h3>
+        <p class="text-indigo-300 mb-6">Vous n'avez pas encore effectué de transactions.</p>
+        <a href="/transactions/new" class="bg-primary-600 hover:bg-primary-700 text-white font-bold py-3 px-6 rounded-lg transition">
+          Effectuer votre première transaction
+        </a>
+      </div>
+      {{end}}
+    </div>
+  </div>
+
+  <!-- Pied de page -->
+  <footer class="text-center py-6 text-indigo-400">
+    CryptoChain Go © 2025 - Sécurisé et transparent
+  </footer>
+
+  <!-- Script JS pour filtrer les transactions -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      console.log('📊 Transactions page loaded');
+      
+      // Animation des lignes au survol
+      const rows = document.querySelectorAll('.transaction-row');
+      rows.forEach(row => {
+        row.addEventListener('mouseenter', () => {
+          row.classList.add('shadow-md');
+        });
+        row.addEventListener('mouseleave', () => {
+          row.classList.remove('shadow-md');
+        });
+      });
+    });
+  </script>
+</body>
+</html>

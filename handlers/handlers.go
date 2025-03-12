@@ -134,12 +134,14 @@ func StatsHandler(bc *blockchain.Blockchain) http.HandlerFunc {
 		}
 
 		var lastBlock *blockchain.Block
+		emptyTime := time.Time{} // Une valeur zero/vide pour time.Time
+
 		if len(bc.Blocks) > 0 {
 			lastBlock = bc.Blocks[len(bc.Blocks)-1]
 		} else {
 			lastBlock = &blockchain.Block{
 				Index:     0,
-				Timestamp: "N/A",
+				Timestamp: emptyTime, // Utiliser time.Time{} au lieu de "N/A"
 				Data:      "Aucun bloc",
 				Hash:      "N/A",
 				PrevHash:  "N/A",

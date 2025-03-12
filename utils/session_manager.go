@@ -35,7 +35,8 @@ func ManageSession(clientIP string, sessions map[string]*UserSession, bc *blockc
 	} else {
 		if now.Sub(session.LastSeen) >= 5*time.Minute {
 			sessionData := fmt.Sprintf("Session de %s démarrée à %v", clientIP, session.StartTime)
-			bc.AddBlock(sessionData, 4)
+			// Utiliser MineBlock au lieu de AddBlock
+			bc.MineBlock("system", sessionData)
 			session.StartTime = now
 		}
 		session.LastSeen = now
