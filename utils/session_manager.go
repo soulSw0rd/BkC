@@ -2,7 +2,6 @@ package utils
 
 import (
 	"BkC/blockchain"
-	"fmt"
 	"net/http"
 	"strings"
 	"sync"
@@ -34,9 +33,9 @@ func ManageSession(clientIP string, sessions map[string]*UserSession, bc *blockc
 		}
 	} else {
 		if now.Sub(session.LastSeen) >= 5*time.Minute {
-			sessionData := fmt.Sprintf("Session de %s démarrée à %v", clientIP, session.StartTime)
-			// Utiliser MineBlock au lieu de AddBlock
-			bc.MineBlock("system", sessionData)
+			// Au lieu d'ajouter un bloc avec des données de session,
+			// nous utilisons l'adresse IP client comme mineur pour créer un nouveau bloc
+			bc.CreateBlock(clientIP)
 			session.StartTime = now
 		}
 		session.LastSeen = now

@@ -2,37 +2,67 @@ package blockchain
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
-	"io/ioutil"
-	"math"
-	"os"
-	"path/filepath"
 	"sync"
 	"time"
 )
 
-// Blockchain représente la chaîne de blocs
-type Blockchain struct {
-	Blocks          []*Block           `json:"blocks"`
-	PendingTxs      []*Transaction     `json:"pending_transactions"`
-	Difficulty      int                `json:"difficulty"`
-	MiningReward    float64            `json:"mining_reward"`
-	Balances        map[string]float64 `json:"balances"`
-	LastBlockTime   time.Time          `json:"last_block_time"`
-	MaxBlockSize    int                `json:"max_block_size"`
-	BlockTimeTarget time.Duration      `json:"block_time_target"`
-	mu              sync.RWMutex
+// MemPool représente la réserve de transactions en attente
+type MemPool struct {
+	Transactions map[string]*Transaction
+	mu           sync.RWMutex
 }
 
-// BlockchainStats contient les statistiques de la blockchain
-type BlockchainStats struct {
-	BlockCount        int       `json:"block_count"`
-	TransactionCount  int       `json:"transaction_count"`
-	PendingTxCount    int       `json:"pending_tx_count"`
-	LastBlockTime     time.Time `json:"last_block_time"`
-	CurrentDifficulty int       `json:"current_difficulty"`
-	AverageBlockTime  float64   `json:"average_block_time"`
-	HashRate          float64   `json:"hash_rate"`
+// NewMemPool crée un nouveau pool de transactions
+func NewMemPool() *MemPool {
+	return &MemPool{
+		Transactions: make(map[string]*Transaction),
+	}
+}
+
+// AddTransaction ajoute une transaction au mempool
+func (mp *MemPool) AddTransaction(tx *Transaction) {
+	mp.mu.Lock()
+	defer mp.mu.Unlock()
+	mp.Transactions[tx.ID] = tx
+}
+
+// GetTransactions récupère les transactions du mempool
+func (mp *MemPool) GetTransactions(limit int) []*Transaction {
+	mp.mu.RLock()
+	defer mp.mu.RUnlock()
+
+	var txs []*Transaction
+	count := 0
+
+	// Trier par frais de transaction (simplification - en réalité, utilisez un tas)
+	for _, tx := range mp.Transactions {
+		txs = append(txs, tx)
+		count++
+		if count >= limit && limit > 0 {
+			break
+		}
+	}
+
+	return txs
+}
+
+// RemoveTransaction supprime une transaction du mempool
+func (mp *MemPool) RemoveTransaction(txID string) {
+	mp.mu.Lock()
+	defer mp.mu.Unlock()
+	delete(mp.Transactions, txID)
+}
+
+// Blockchain représente la chaîne de blocs
+type Blockchain struct {
+	Blocks           []*Block
+	MemPool          *MemPool
+	mu               sync.RWMutex
+	MiningDifficulty int
+	MiningReward     float64
+	TargetBlockTime  time.Duration
 }
 
 // CreateGenesisBlock crée le premier bloc (genesis block)
@@ -41,207 +71,96 @@ func CreateGenesisBlock() *Block {
 	block := &Block{
 		Index:        0,
 		Timestamp:    genesisTime,
-		Transactions: []*Transaction{},
-		Data:         "Genesis Block",
+		Transactions: []Transaction{},
 		PrevHash:     "",
 		Nonce:        0,
+		Difficulty:   4,
 		Miner:        "system",
-		Difficulty:   2,
 	}
 
-	block.ProofOfWork(block.Difficulty)
+	// Créer une transaction de récompense pour le bloc genesis
+	coinbaseTx := Transaction{
+		ID:        "genesis_coinbase",
+		Timestamp: genesisTime,
+		Sender:    "system",
+		Recipient: "genesis_address",
+		Amount:    50.0,
+		Fee:       0,
+	}
+
+	block.AddTransaction(coinbaseTx)
+	block.MerkleRoot = block.CalculateMerkleRoot()
+	block.Hash = block.ComputeHash()
+	block.ProofOfWork(4)
+
 	return block
 }
 
 // NewBlockchain initialise une nouvelle blockchain
 func NewBlockchain() *Blockchain {
 	return &Blockchain{
-		Blocks:          []*Block{CreateGenesisBlock()},
-		PendingTxs:      []*Transaction{},
-		Difficulty:      4,
-		MiningReward:    10.0,
-		Balances:        map[string]float64{"system": 1000.0},
-		LastBlockTime:   time.Now(),
-		MaxBlockSize:    10,
-		BlockTimeTarget: 30 * time.Second,
+		Blocks:           []*Block{CreateGenesisBlock()},
+		MemPool:          NewMemPool(),
+		MiningDifficulty: 4,
+		MiningReward:     50.0,
+		TargetBlockTime:  60 * time.Second, // 1 minute par bloc
 	}
 }
 
-// AddTransaction ajoute une transaction à la liste d'attente
-func (bc *Blockchain) AddTransaction(tx *Transaction) error {
+// CreateBlock crée et mine un nouveau bloc
+func (bc *Blockchain) CreateBlock(minerAddress string) *Block {
 	bc.mu.Lock()
 	defer bc.mu.Unlock()
 
-	// Valider la transaction
-	if !tx.IsValid() {
-		return fmt.Errorf("transaction invalide")
-	}
-
-	// Vérifier le solde (sauf pour les transactions système)
-	if tx.From != "system" {
-		balance, exists := bc.Balances[tx.From]
-		if !exists || balance < tx.Amount {
-			return fmt.Errorf("solde insuffisant pour %s", tx.From)
-		}
-	}
-
-	// Vérifier si l'ID existe déjà
-	for _, pendingTx := range bc.PendingTxs {
-		if pendingTx.ID == tx.ID {
-			return fmt.Errorf("transaction avec ID %s existe déjà", tx.ID)
-		}
-	}
-
-	// Vérifier dans les blocs existants
-	for _, block := range bc.Blocks {
-		for _, blockTx := range block.Transactions {
-			if blockTx.ID == tx.ID {
-				return fmt.Errorf("transaction avec ID %s existe déjà dans un bloc", tx.ID)
-			}
-		}
-	}
-
-	bc.PendingTxs = append(bc.PendingTxs, tx)
-	return nil
-}
-
-// MineBlock crée un nouveau bloc avec les transactions en attente
-func (bc *Blockchain) MineBlock(minerAddress string, customData string) (*Block, error) {
-	bc.mu.Lock()
-	defer bc.mu.Unlock()
-
-	if len(bc.Blocks) == 0 {
-		return nil, fmt.Errorf("blockchain vide, impossible de miner un bloc")
-	}
-
-	// Déterminer combien de transactions inclure
-	txCount := len(bc.PendingTxs)
-	if txCount > bc.MaxBlockSize {
-		txCount = bc.MaxBlockSize
-	}
-
-	// Préparer les transactions pour le bloc
-	transactions := make([]*Transaction, 0, txCount+1) // +1 pour la récompense
-	if txCount > 0 {
-		transactions = append(transactions, bc.PendingTxs[:txCount]...)
-	}
-
-	// Ajouter la transaction de récompense
-	rewardTx := NewTransaction("system", minerAddress, bc.MiningReward)
-	transactions = append(transactions, rewardTx)
-
-	// Créer le bloc
 	prevBlock := bc.Blocks[len(bc.Blocks)-1]
+
+	// Créer le nouveau bloc
 	newBlock := &Block{
 		Index:        len(bc.Blocks),
 		Timestamp:    time.Now(),
-		Transactions: transactions,
-		Data:         customData,
+		Transactions: []Transaction{},
 		PrevHash:     prevBlock.Hash,
 		Nonce:        0,
+		Difficulty:   bc.MiningDifficulty,
 		Miner:        minerAddress,
 	}
 
-	// Miner le bloc (proof of work)
-	miningTime := newBlock.ProofOfWork(bc.Difficulty)
+	// Créer la transaction de récompense pour le mineur
+	coinbaseTx := Transaction{
+		ID:        fmt.Sprintf("coinbase_%d", newBlock.Index),
+		Timestamp: newBlock.Timestamp,
+		Sender:    "system",
+		Recipient: minerAddress,
+		Amount:    bc.MiningReward,
+		Fee:       0,
+	}
 
-	// Ajouter le bloc à la chaîne
+	// Ajouter la transaction de récompense
+	newBlock.AddTransaction(coinbaseTx)
+
+	// Ajouter les transactions du mempool (jusqu'à une limite, par exemple 100)
+	pendingTxs := bc.MemPool.GetTransactions(100)
+	for _, tx := range pendingTxs {
+		// Vérifier la validité de la transaction
+		if tx.Verify() {
+			newBlock.AddTransaction(*tx)
+			bc.MemPool.RemoveTransaction(tx.ID)
+		}
+	}
+
+	// Calculer la racine de Merkle
+	newBlock.MerkleRoot = newBlock.CalculateMerkleRoot()
+
+	// Miner le bloc
+	newBlock.ProofOfWork(bc.MiningDifficulty)
+
+	// Ajouter à la blockchain
 	bc.Blocks = append(bc.Blocks, newBlock)
 
 	// Ajuster la difficulté si nécessaire
-	bc.adjustDifficulty(miningTime)
+	bc.MiningDifficulty = AdjustDifficulty(bc.Blocks, bc.TargetBlockTime)
 
-	// Mettre à jour les soldes
-	for _, tx := range transactions {
-		if tx.From != "system" {
-			bc.Balances[tx.From] -= tx.Amount
-		}
-
-		// S'assurer que le destinataire a une entrée dans la map des soldes
-		if _, exists := bc.Balances[tx.To]; !exists {
-			bc.Balances[tx.To] = 0
-		}
-
-		bc.Balances[tx.To] += tx.Amount
-	}
-
-	// Supprimer les transactions traitées de la liste d'attente
-	if txCount > 0 {
-		bc.PendingTxs = bc.PendingTxs[txCount:]
-	}
-
-	// Mettre à jour le temps du dernier bloc
-	bc.LastBlockTime = newBlock.Timestamp
-
-	return newBlock, nil
-}
-
-// adjustDifficulty ajuste la difficulté en fonction du temps de minage
-func (bc *Blockchain) adjustDifficulty(lastMiningTime time.Duration) {
-	// Si le minage était trop rapide, augmenter la difficulté
-	if lastMiningTime < bc.BlockTimeTarget/2 {
-		bc.Difficulty++
-		return
-	}
-
-	// Si le minage était trop lent, diminuer la difficulté (mais pas en dessous de 1)
-	if lastMiningTime > bc.BlockTimeTarget*2 && bc.Difficulty > 1 {
-		bc.Difficulty--
-	}
-}
-
-// GetStats retourne les statistiques de la blockchain
-func (bc *Blockchain) GetStats() BlockchainStats {
-	bc.mu.RLock()
-	defer bc.mu.RUnlock()
-
-	stats := BlockchainStats{
-		BlockCount:        len(bc.Blocks),
-		TransactionCount:  0,
-		PendingTxCount:    len(bc.PendingTxs),
-		LastBlockTime:     bc.LastBlockTime,
-		CurrentDifficulty: bc.Difficulty,
-	}
-
-	// Calculer le nombre total de transactions
-	var totalTime time.Duration
-	var totalTx int
-
-	for i, block := range bc.Blocks {
-		txCount := len(block.Transactions)
-		stats.TransactionCount += txCount
-		totalTx += txCount
-
-		if i > 0 {
-			timeDiff := block.Timestamp.Sub(bc.Blocks[i-1].Timestamp)
-			totalTime += timeDiff
-		}
-	}
-
-	// Calculer le temps moyen entre les blocs
-	if len(bc.Blocks) > 1 {
-		stats.AverageBlockTime = totalTime.Seconds() / float64(len(bc.Blocks)-1)
-	}
-
-	// Estimation du taux de hachage basée sur la difficulté et le temps moyen
-	if stats.AverageBlockTime > 0 {
-		// Formule approximative: 2^difficulté / temps_moyen_bloc
-		stats.HashRate = math.Pow(2, float64(bc.Difficulty)) / stats.AverageBlockTime
-	}
-
-	return stats
-}
-
-// GetBalance retourne le solde d'une adresse
-func (bc *Blockchain) GetBalance(address string) float64 {
-	bc.mu.RLock()
-	defer bc.mu.RUnlock()
-
-	balance, exists := bc.Balances[address]
-	if !exists {
-		return 0
-	}
-	return balance
+	return newBlock
 }
 
 // ValidateChain vérifie l'intégrité de toute la blockchain
@@ -249,178 +168,141 @@ func (bc *Blockchain) ValidateChain() (bool, error) {
 	bc.mu.RLock()
 	defer bc.mu.RUnlock()
 
-	// Vérifier que la blockchain contient au moins un bloc
-	if len(bc.Blocks) == 0 {
-		return false, fmt.Errorf("blockchain vide")
-	}
-
-	// Parcourir tous les blocs à partir du deuxième
 	for i := 1; i < len(bc.Blocks); i++ {
 		currentBlock := bc.Blocks[i]
-		previousBlock := bc.Blocks[i-1]
+		prevBlock := bc.Blocks[i-1]
 
-		// Vérifier que l'index est correct
-		if currentBlock.Index != previousBlock.Index+1 {
-			return false, fmt.Errorf("index du bloc %d invalide", i)
+		// Vérifier la référence au bloc précédent
+		if currentBlock.PrevHash != prevBlock.Hash {
+			return false, errors.New("chaîne brisée: hash précédent incorrect")
 		}
 
-		// Vérifier que le hash précédent correspond
-		if currentBlock.PrevHash != previousBlock.Hash {
-			return false, fmt.Errorf("hash précédent invalide pour le bloc %d", i)
-		}
-
-		// Recalculer le hash pour vérifier
-		calculatedHash := currentBlock.ComputeHash()
-		if calculatedHash != currentBlock.Hash {
-			return false, fmt.Errorf("hash invalide pour le bloc %d", i)
+		// Vérifier le hash du bloc actuel
+		if currentBlock.Hash != currentBlock.ComputeHash() {
+			return false, errors.New("hash de bloc invalide")
 		}
 
 		// Vérifier la preuve de travail
-		if !currentBlock.ValidateProofOfWork() {
-			return false, fmt.Errorf("preuve de travail invalide pour le bloc %d", i)
+		if !currentBlock.VerifyProofOfWork() {
+			return false, errors.New("preuve de travail invalide")
+		}
+
+		// Vérifier la racine de Merkle
+		if currentBlock.MerkleRoot != currentBlock.CalculateMerkleRoot() {
+			return false, errors.New("racine de Merkle invalide")
+		}
+
+		// Vérifier les transactions
+		for _, tx := range currentBlock.Transactions {
+			if !tx.Verify() && tx.Sender != "system" {
+				return false, errors.New("transaction invalide dans le bloc")
+			}
 		}
 	}
 
 	return true, nil
 }
 
-// SaveToFile sauvegarde la blockchain dans un fichier JSON
-func (bc *Blockchain) SaveToFile(filename string) error {
+// GetBalance calcule le solde d'une adresse
+func (bc *Blockchain) GetBalance(address string) float64 {
 	bc.mu.RLock()
 	defer bc.mu.RUnlock()
 
-	// Créer le répertoire parent si nécessaire
-	dir := filepath.Dir(filename)
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return fmt.Errorf("impossible de créer le répertoire %s: %w", dir, err)
+	balance := 0.0
+
+	for _, block := range bc.Blocks {
+		for _, tx := range block.Transactions {
+			if tx.Recipient == address {
+				balance += tx.Amount
+			}
+			if tx.Sender == address {
+				balance -= (tx.Amount + tx.Fee)
+			}
+		}
 	}
 
-	// Structure temporaire pour la sérialisation
-	data := struct {
-		Blocks          []*Block           `json:"blocks"`
-		PendingTxs      []*Transaction     `json:"pending_transactions"`
-		Difficulty      int                `json:"difficulty"`
-		MiningReward    float64            `json:"mining_reward"`
-		Balances        map[string]float64 `json:"balances"`
-		LastBlockTime   time.Time          `json:"last_block_time"`
-		MaxBlockSize    int                `json:"max_block_size"`
-		BlockTimeTarget time.Duration      `json:"block_time_target"`
-	}{
-		Blocks:          bc.Blocks,
-		PendingTxs:      bc.PendingTxs,
-		Difficulty:      bc.Difficulty,
-		MiningReward:    bc.MiningReward,
-		Balances:        bc.Balances,
-		LastBlockTime:   bc.LastBlockTime,
-		MaxBlockSize:    bc.MaxBlockSize,
-		BlockTimeTarget: bc.BlockTimeTarget,
+	return balance
+}
+
+// GetTransactionHistory récupère l'historique des transactions d'une adresse
+func (bc *Blockchain) GetTransactionHistory(address string) []Transaction {
+	bc.mu.RLock()
+	defer bc.mu.RUnlock()
+
+	var history []Transaction
+
+	for _, block := range bc.Blocks {
+		for _, tx := range block.Transactions {
+			if tx.Sender == address || tx.Recipient == address {
+				history = append(history, tx)
+			}
+		}
 	}
 
-	// Sérialiser avec indentation pour lisibilité
-	jsonData, err := json.MarshalIndent(data, "", "  ")
-	if err != nil {
-		return fmt.Errorf("erreur lors de la sérialisation: %w", err)
+	return history
+}
+
+// AddTransaction ajoute une transaction au mempool
+func (bc *Blockchain) AddTransaction(tx *Transaction) error {
+	// Vérifier la validité de la transaction
+	if !tx.Verify() {
+		return errors.New("transaction invalide")
 	}
 
-	// Écrire dans le fichier
-	if err := ioutil.WriteFile(filename, jsonData, 0644); err != nil {
-		return fmt.Errorf("erreur d'écriture dans le fichier %s: %w", filename, err)
+	// Vérifier que l'expéditeur a suffisamment de fonds
+	if tx.Sender != "system" {
+		balance := bc.GetBalance(tx.Sender)
+		if balance < tx.Amount+tx.Fee {
+			return errors.New("fonds insuffisants")
+		}
+	}
+
+	// Ajouter au mempool
+	bc.MemPool.AddTransaction(tx)
+
+	return nil
+}
+
+// GetStats retourne les statistiques en JSON
+func (bc *Blockchain) GetStats() string {
+	bc.mu.RLock()
+	defer bc.mu.RUnlock()
+
+	stats := map[string]interface{}{
+		"numBlocks":        len(bc.Blocks),
+		"difficulty":       bc.MiningDifficulty,
+		"miningReward":     bc.MiningReward,
+		"pendingTxCount":   len(bc.MemPool.Transactions),
+		"lastBlockHash":    bc.Blocks[len(bc.Blocks)-1].Hash,
+		"blockchainHeight": len(bc.Blocks) - 1,
+	}
+
+	jsonStats, _ := json.Marshal(stats)
+	return string(jsonStats)
+}
+
+// GetBlockByHash recherche un bloc par son hash
+func (bc *Blockchain) GetBlockByHash(hash string) *Block {
+	bc.mu.RLock()
+	defer bc.mu.RUnlock()
+
+	for _, block := range bc.Blocks {
+		if block.Hash == hash {
+			return block
+		}
 	}
 
 	return nil
 }
 
-// LoadBlockchainFromFile charge la blockchain depuis un fichier JSON
-func LoadBlockchainFromFile(filename string) (*Blockchain, error) {
-	// Vérifier si le fichier existe
-	if _, err := os.Stat(filename); os.IsNotExist(err) {
-		return nil, fmt.Errorf("le fichier %s n'existe pas", filename)
-	}
-
-	// Lire le fichier
-	data, err := ioutil.ReadFile(filename)
-	if err != nil {
-		return nil, fmt.Errorf("erreur lors de la lecture du fichier %s: %w", filename, err)
-	}
-
-	// Structure temporaire pour la désérialisation
-	var temp struct {
-		Blocks          []*Block           `json:"blocks"`
-		PendingTxs      []*Transaction     `json:"pending_transactions"`
-		Difficulty      int                `json:"difficulty"`
-		MiningReward    float64            `json:"mining_reward"`
-		Balances        map[string]float64 `json:"balances"`
-		LastBlockTime   time.Time          `json:"last_block_time"`
-		MaxBlockSize    int                `json:"max_block_size"`
-		BlockTimeTarget time.Duration      `json:"block_time_target"`
-	}
-
-	// Désérialiser
-	if err := json.Unmarshal(data, &temp); err != nil {
-		return nil, fmt.Errorf("erreur lors de la désérialisation: %w", err)
-	}
-
-	// Créer une nouvelle blockchain avec les données chargées
-	bc := &Blockchain{
-		Blocks:          temp.Blocks,
-		PendingTxs:      temp.PendingTxs,
-		Difficulty:      temp.Difficulty,
-		MiningReward:    temp.MiningReward,
-		Balances:        temp.Balances,
-		LastBlockTime:   temp.LastBlockTime,
-		MaxBlockSize:    temp.MaxBlockSize,
-		BlockTimeTarget: temp.BlockTimeTarget,
-	}
-
-	return bc, nil
-}
-
-// GetTransactionByID recherche une transaction par son ID
-func (bc *Blockchain) GetTransactionByID(txID string) (*Transaction, bool, int) {
+// GetBlockByIndex recherche un bloc par son index
+func (bc *Blockchain) GetBlockByIndex(index int) *Block {
 	bc.mu.RLock()
 	defer bc.mu.RUnlock()
 
-	// Chercher d'abord dans les transactions en attente
-	for _, tx := range bc.PendingTxs {
-		if tx.ID == txID {
-			return tx, false, -1 // Trouvé dans les transactions en attente
-		}
+	if index < 0 || index >= len(bc.Blocks) {
+		return nil
 	}
 
-	// Chercher dans les blocs
-	for _, block := range bc.Blocks {
-		for _, tx := range block.Transactions {
-			if tx.ID == txID {
-				return tx, true, block.Index // Trouvé dans un bloc confirmé
-			}
-		}
-	}
-
-	return nil, false, -1 // Non trouvé
-}
-
-// GetTransactionsForAddress retourne toutes les transactions pour une adresse
-func (bc *Blockchain) GetTransactionsForAddress(address string) []*Transaction {
-	bc.mu.RLock()
-	defer bc.mu.RUnlock()
-
-	result := []*Transaction{}
-
-	// Rechercher dans tous les blocs
-	for _, block := range bc.Blocks {
-		for _, tx := range block.Transactions {
-			if tx.From == address || tx.To == address {
-				result = append(result, tx)
-			}
-		}
-	}
-
-	// Ajouter les transactions en attente
-	for _, tx := range bc.PendingTxs {
-		if tx.From == address || tx.To == address {
-			result = append(result, tx)
-		}
-	}
-
-	return result
+	return bc.Blocks[index]
 }
