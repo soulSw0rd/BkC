@@ -179,4 +179,5 @@ Ce projet est sous licence [GNU General Public License v3.0](LICENSE) - voir le 
 
 ---
 
-Développé avec ❤️ par [SoulSw0rd](https://github.com/soulSw0rd)
+Hébergé sur le repository de [SoulSw0rd](https://github.com/soulSw0rd)
+Dévellopé par l'équipe de BKC
