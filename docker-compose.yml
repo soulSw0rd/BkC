@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  # Service principal pour l'application CryptoChain Go
+  bkc:
+    build: .
+    container_name: bkc-node
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - bkc-data:/app/data
+      - bkc-logs:/app/logs
+    environment:
+      - SERVER_PORT=8080
+      - DATA_DIR=/app/data
+      - LOGS_DIR=/app/logs
+      - DEBUG_MODE=false
+      - AUTO_OPEN_BROWSER=false
+    networks:
+      - bkc-network
+
+  # Service pour le monitoring (Prometheus)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: bkc-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    networks:
+      - bkc-network
+
+  # Service pour la visualisation (Grafana)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: bkc-grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    networks:
+      - bkc-network
+    depends_on:
+      - prometheus
+
+volumes:
+  bkc-data:
+  bkc-logs:
+  prometheus-data:
+  grafana-data:
+
+networks:
+  bkc-network:
+    driver: bridge

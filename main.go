@@ -3,7 +3,10 @@ package main
 import (
 	"BkC/blockchain"
 	"BkC/handlers"
+	"BkC/network"
 	"BkC/utils"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -19,10 +22,10 @@ import (
 	"time"
 )
 
-// Version de l'application
-const appVersion = "1.2.0"
+// Version of the application
+const appVersion = "1.3.0"
 
-// openBrowser ouvre le navigateur par défaut avec l'URL spécifiée.
+// openBrowser opens the default browser with the specified URL
 func openBrowser(url string) {
 	var cmd string
 	var args []string
@@ -36,17 +39,17 @@ func openBrowser(url string) {
 	case "linux":
 		cmd = "xdg-open"
 	default:
-		log.Println("⚠️ Système non supporté pour l'ouverture automatique du navigateur")
+		log.Println("⚠️ Unsupported system for automatic browser opening")
 		return
 	}
 
 	args = append(args, url)
 	if err := exec.Command(cmd, args...).Start(); err != nil {
-		log.Printf("❌ Erreur lors de l'ouverture du navigateur: %v", err)
+		log.Printf("❌ Error opening browser: %v", err)
 	}
 }
 
-// initDirectories crée les répertoires nécessaires
+// initDirectories creates necessary directories
 func initDirectories() error {
 	directories := []string{
 		"logs",
@@ -57,50 +60,51 @@ func initDirectories() error {
 		"static/js",
 		"templates/layouts",
 		"network",
+		"data/db", // For LevelDB
 	}
 
 	for _, dir := range directories {
 		if err := os.MkdirAll(dir, 0755); err != nil {
-			return fmt.Errorf("impossible de créer le répertoire %s: %w", dir, err)
+			return fmt.Errorf("could not create directory %s: %w", dir, err)
 		}
 	}
 
 	return nil
 }
 
-// setupLogging configure la journalisation
+// setupLogging configures logging
 func setupLogging() error {
 	logFilePath := filepath.Join(utils.Config.LogsDir, "server.log")
 	logFile, err := os.OpenFile(logFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		return fmt.Errorf("erreur lors de l'ouverture du fichier log: %w", err)
+		return fmt.Errorf("error opening log file: %w", err)
 	}
 	utils.LogFile = logFile
 	return nil
 }
 
-// setupAuditAndSecurity initialise les systèmes d'audit et de sécurité
+// setupAuditAndSecurity initializes audit and security systems
 func setupAuditAndSecurity() {
-	// Initialiser le système d'audit
+	// Initialize audit system
 	auditPath := filepath.Join(utils.Config.DataDir, "audit.json")
 	if err := utils.InitAuditTrail(auditPath); err != nil {
-		log.Printf("⚠️ Erreur lors de l'initialisation du système d'audit: %v", err)
+		log.Printf("⚠️ Error initializing audit trail: %v", err)
 	}
 
-	// Initialiser le système d'évaluation des risques de sécurité
+	// Initialize security risk assessment system
 	securityPath := filepath.Join(utils.Config.DataDir, "security.json")
 	if err := utils.InitSecurityRiskAssessment(securityPath); err != nil {
-		log.Printf("⚠️ Erreur lors de l'initialisation du système d'évaluation des risques: %v", err)
+		log.Printf("⚠️ Error initializing security risk assessment: %v", err)
 	}
 
-	// Initialiser le moniteur de performance
+	// Initialize performance monitor
 	metricsPath := filepath.Join(utils.Config.DataDir, "metrics", "performance.json")
 	utils.InitPerformanceMonitor(metricsPath)
 }
 
-// setupBlockchainProcessor configure le processeur de blockchain
+// setupBlockchainProcessor configures blockchain processor
 func setupBlockchainProcessor(bc *blockchain.Blockchain) {
-	// Démarrer un traitement périodique des contrats en attente
+	// Start periodic processing of pending smart contracts
 	go func() {
 		ticker := time.NewTicker(30 * time.Second)
 		defer ticker.Stop()
@@ -112,15 +116,40 @@ func setupBlockchainProcessor(bc *blockchain.Blockchain) {
 			}
 		}
 	}()
+
+	// Start periodic staking rewards distribution
+	go func() {
+		ticker := time.NewTicker(1 * time.Hour)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-ticker.C:
+				bc.StakingPool.DistributeRewards()
+				bc.StakingPool.ProcessExpiredStakes()
+				bc.StakingPool.CalculateAPY()
+			}
+		}
+	}()
 }
 
-// setupRoutes configure toutes les routes de l'application
-func setupRoutes(router *http.ServeMux, bc *blockchain.Blockchain) {
-	// Fichiers statiques
+// initializeStorage initializes the storage layer
+func initializeStorage() (*blockchain.LevelDBStorage, error) {
+	dbPath := filepath.Join(utils.Config.DataDir, "db")
+	storage, err := blockchain.NewLevelDBStorage(dbPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize storage: %w", err)
+	}
+	return storage, nil
+}
+
+// setupRoutes configures all application routes
+func setupRoutes(router *http.ServeMux, bc *blockchain.Blockchain, enhancedNetwork *network.EnhancedNetworkManager) {
+	// Static files
 	fs := http.FileServer(http.Dir("static"))
 	router.Handle("/static/", http.StripPrefix("/static/", fs))
 
-	// Route par défaut : affiche la page d'accueil (acceuil.html)
+	// Default route: displays home page (acceuil.html)
 	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {
 			http.NotFound(w, r)
@@ -129,81 +158,93 @@ func setupRoutes(router *http.ServeMux, bc *blockchain.Blockchain) {
 
 		tmpl, err := template.ParseFiles("templates/acceuil.html")
 		if err != nil {
-			http.Error(w, "Erreur lors du chargement de la page d'accueil", http.StatusInternalServerError)
+			http.Error(w, "Error loading home page", http.StatusInternalServerError)
 			return
 		}
 		tmpl.Execute(w, nil)
 	})
 
-	// Routes d'authentification
+	// Authentication routes
 	router.HandleFunc("/login", handlers.LoginHandler)
 	router.HandleFunc("/login-submit", handlers.LoginSubmitHandler)
 	router.HandleFunc("/logout", handlers.LogoutHandler)
 	router.HandleFunc("/register", handlers.RegisterHandler)
 	router.HandleFunc("/register-submit", handlers.RegisterSubmitHandler)
 
-	// Routes sécurisées
+	// Secure routes
 	router.HandleFunc("/home", handlers.HomeHandler)
 	router.HandleFunc("/profile", handlers.ProfileHandler)
 	router.HandleFunc("/admin", handlers.AdminHandler(bc))
 
-	// Routes de la blockchain
+	// Blockchain routes
 	router.HandleFunc("/blockchain", handlers.BlockchainHandler(bc))
 	router.HandleFunc("/transactions", handlers.TransactionHandler(bc))
 	router.HandleFunc("/wallets", handlers.WalletHandler("wallets"))
 	router.HandleFunc("/stats", handlers.StatsHandler(bc))
 
-	// Nouvelles routes P2P
+	// Staking routes
+	router.HandleFunc("/staking", handlers.StakingHandler(bc))
+	router.HandleFunc("/staking/create", handlers.CreateStakeHandler(bc))
+	router.HandleFunc("/staking/claim", handlers.ClaimRewardsHandler(bc))
+	router.HandleFunc("/staking/unstake", handlers.UnstakeHandler(bc))
+	router.HandleFunc("/staking/withdraw", handlers.WithdrawStakeHandler(bc))
+	router.HandleFunc("/staking/validators", handlers.ValidatorsHandler(bc))
+	router.HandleFunc("/staking/delegate", handlers.DelegateHandler(bc))
+
+	// P2P routes
 	router.HandleFunc("/p2p/", handlers.P2PHandler(bc))
 	router.HandleFunc("/p2p/message", handlers.P2PHandler(bc))
 	router.HandleFunc("/p2p/nodes", handlers.P2PHandler(bc))
 	router.HandleFunc("/p2p/node", handlers.P2PHandler(bc))
 	router.HandleFunc("/p2p/sync", handlers.P2PHandler(bc))
 
-	// Routes des contrats intelligents
+	// Add enhanced P2P handlers
+	enhancedNetwork.ExtendHandlers(router)
+
+	// Smart contract routes
 	router.HandleFunc("/contracts", handlers.ContractUIHandler(bc))
 	router.HandleFunc("/contract/", handlers.ContractUIHandler(bc))
 
-	// Routes de détail de bloc
+	// Block detail routes
 	router.HandleFunc("/block/", func(w http.ResponseWriter, r *http.Request) {
-		// Extraire l'index du bloc à partir de l'URL
+		// Extract block index from URL
 		path := r.URL.Path
 		if len(path) <= len("/block/") {
-			http.Error(w, "Index du bloc manquant", http.StatusBadRequest)
+			http.Error(w, "Missing block index", http.StatusBadRequest)
 			return
 		}
 
 		indexStr := path[len("/block/"):]
 		index, err := strconv.Atoi(indexStr)
 		if err != nil {
-			http.Error(w, "Index du bloc invalide", http.StatusBadRequest)
+			http.Error(w, "Invalid block index", http.StatusBadRequest)
 			return
 		}
 
-		// Récupérer le bloc
+		// Get the block
 		block := bc.GetBlockByIndex(index)
 		if block == nil {
-			http.Error(w, "Bloc introuvable", http.StatusNotFound)
+			http.Error(w, "Block not found", http.StatusNotFound)
 			return
 		}
 
-		// Rendre le template avec les données du bloc
+		// Render the template with block data
 		tmpl, err := template.ParseFiles("templates/block_detail.html")
 		if err != nil {
-			http.Error(w, "Erreur lors du chargement du template", http.StatusInternalServerError)
+			http.Error(w, "Error loading template", http.StatusInternalServerError)
 			return
 		}
 
-		// Formater les données pour le template
+		// Format data for the template
 		rawBlockData, _ := json.Marshal(block)
 		latestBlockIndex := len(bc.Blocks) - 1
 
-		// Calculer le temps de minage estimé (pour la démo)
-		miningTime := 30.0      // secondes (valeur de démonstration)
-		targetBlockTime := 60.0 // secondes (objectif)
+		// Calculate estimated mining time (for demo)
+		miningTime := 30.0      // seconds (demo value)
+		targetBlockTime := 60.0 // seconds (target)
 		miningTimeRatio := miningTime / targetBlockTime
 
-		// Estimer le taux de hachage (pour la démo)
+		// Estimate hash rate (for demo)
 		estimatedHashRate := float64(block.Nonce) / miningTime
 
 		data := map[string]interface{}{
@@ -220,81 +261,110 @@ func setupRoutes(router *http.ServeMux, bc *blockchain.Blockchain) {
 		tmpl.Execute(w, data)
 	})
 
-	// Route pour l'API REST
+	// REST API routes
 	router.HandleFunc("/api/", handlers.APIHandler(bc))
 	router.HandleFunc("/api/contracts", handlers.ContractsHandler(bc))
 	router.HandleFunc("/api/contracts/", handlers.ContractsHandler(bc))
+	router.HandleFunc("/api/staking", handlers.StakingAPIHandler(bc))
+	router.HandleFunc("/api/staking/", handlers.StakingAPIHandler(bc))
 }
 
-// setupGracefulShutdown configure l'arrêt propre de l'application
+// setupGracefulShutdown sets up graceful shutdown
 func setupGracefulShutdown() chan os.Signal {
-	// Canal pour recevoir les signaux d'arrêt
+	// Channel to receive shutdown signals
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
 
 	return stop
 }
 
+// generateServerKey generates a random server key
+func generateServerKey() string {
+	key := make([]byte, 32)
+	rand.Read(key)
+	return hex.EncodeToString(key)
+}
+
 func main() {
 	startTime := time.Now()
 
-	// Créer les répertoires nécessaires
+	// Create necessary directories
 	if err := initDirectories(); err != nil {
-		log.Fatalf("❌ Erreur lors de l'initialisation des répertoires: %v", err)
+		log.Fatalf("❌ Error initializing directories: %v", err)
 	}
 
-	// Initialiser la configuration
+	// Initialize configuration
 	utils.InitializeConfig()
 
-	// Configurer la journalisation
+	// Configure logging
 	if err := setupLogging(); err != nil {
-		log.Fatalf("❌ Erreur lors de la configuration de la journalisation: %v", err)
+		log.Fatalf("❌ Error configuring logging: %v", err)
 	}
 	defer utils.LogFile.Close()
 
-	// Initialiser les systèmes d'audit et de sécurité
+	// Initialize audit and security systems
 	setupAuditAndSecurity()
 
-	// Initialisation de la blockchain
-	bc := blockchain.NewBlockchain()
+	// Initialize storage
+	storage, err := initializeStorage()
+	if err != nil {
+		log.Fatalf("❌ Error initializing storage: %v", err)
+	}
+	defer storage.Close()
 
-	// Configurer le processeur de blockchain
+	// Initialize blockchain with new features
+	bc := blockchain.NewBlockchain()
+	bc.Storage = storage                         // Set storage
+	bc.StakingPool = blockchain.NewStakingPool() // Initialize staking pool
+
+	// Configure blockchain processor
 	setupBlockchainProcessor(bc)
 
-	// Initialisation des utilisateurs par défaut
+	// Initialize default users
 	handlers.InitSampleUsers()
 
-	// Initialiser le gestionnaire réseau P2P
-	isValidator := true // Ce nœud est un validateur
+	// Initialize P2P network manager with enhanced features
+	isValidator := true // This node is a validator
 	port := utils.Config.ServerPort
 	nodeURL := fmt.Sprintf("http://localhost:%d", port)
-	handlers.InitNetworkManager(bc, nodeURL, isValidator)
+	enhancedNetwork := network.NewEnhancedNetworkManager(nodeURL, bc, isValidator)
 
-	// Initialiser le router et configurer les routes
+	// Bootstrap the network with some seed nodes
+	seedNodes := []string{
+		fmt.Sprintf("http://localhost:%d", port), // This node
+		"http://localhost:8081",                  // Potential other nodes
+		"http://localhost:8082",
+	}
+	enhancedNetwork.Bootstrap(seedNodes)
+
+	// Set up automatic refresh
+	enhancedNetwork.AutoRefresh(10 * time.Minute)
+
+	// Initialize router and configure routes
 	router := http.NewServeMux()
-	setupRoutes(router, bc)
+	setupRoutes(router, bc, enhancedNetwork)
 
-	// Configurer l'arrêt propre
+	// Configure graceful shutdown
 	stopChan := setupGracefulShutdown()
 
-	// Appliquer les middlewares
+	// Apply middlewares
 	var handler http.Handler = router
 	handler = utils.LoggingMiddleware(handler)
 	handler = utils.RecoveryMiddleware(handler)
 	handler = utils.SecurityHeadersMiddleware(handler)
 	handler = utils.CORSMiddleware(handler)
 
-	// Ajouter le middleware de limitation de débit si configuré
+	// Add rate limiting middleware if configured
 	if utils.Config.EnableRateLimiting {
 		handler = utils.RateLimiterMiddleware(handler)
 	}
 
-	// Journaliser le démarrage du serveur
+	// Log server start
 	utils.LogAuditEvent(
 		utils.EventTypeServerStarted,
 		"system",
 		"localhost",
-		fmt.Sprintf("Serveur démarré sur le port %d", port),
+		fmt.Sprintf("Server started on port %d", port),
 		utils.RiskLow,
 		map[string]interface{}{
 			"startup_time_ms": time.Since(startTime).Milliseconds(),
@@ -304,52 +374,53 @@ func main() {
 		},
 	)
 
-	// Ouvre le navigateur automatiquement si configuré
+	// Automatically open browser if configured
 	if utils.Config.AutoOpenBrowser {
 		go func() {
-			log.Println("🌍 Ouverture du navigateur...")
+			log.Println("🌍 Opening browser...")
 			openBrowser(fmt.Sprintf("http://localhost:%d", port))
 		}()
 	}
 
-	// Afficher les informations de démarrage
-	fmt.Printf("🚀 Serveur lancé sur : http://localhost:%d\n", port)
-	fmt.Println("👤 Utilisateurs par défaut :")
+	// Display startup information
+	fmt.Printf("🚀 Server launched at: http://localhost:%d\n", port)
+	fmt.Println("👤 Default users:")
 	fmt.Println("   - Admin: admin/admin")
 	fmt.Println("   - User:  user/user")
-	fmt.Println("🎨 Interface utilisateur améliorée avec thème sombre et animations")
-	fmt.Println("🌐 Réseau P2P activé - Simulant une blockchain distribuée")
-	fmt.Println("📜 Système de contrats intelligents basique opérationnel")
-	fmt.Printf("⏱️ Temps de démarrage: %v\n", time.Since(startTime))
+	fmt.Println("🎨 Enhanced UI with dark theme and animations")
+	fmt.Println("🌐 Enhanced P2P network with Kademlia DHT")
+	fmt.Println("📊 LevelDB persistent storage implemented")
+	fmt.Println("💰 Token staking and validator system added")
+	fmt.Printf("⏱️ Startup time: %v\n", time.Since(startTime))
 	fmt.Printf("📊 Version %s | © 2025 CryptoChain Go\n", appVersion)
 
-	// Démarrer le serveur dans une goroutine séparée
+	// Start server in a separate goroutine
 	go func() {
 		if err := http.ListenAndServe(fmt.Sprintf(":%d", port), handler); err != nil {
-			log.Fatalf("❌ Erreur lors du démarrage du serveur : %v", err)
+			log.Fatalf("❌ Error starting server: %v", err)
 		}
 	}()
 
-	// Attendre le signal d'arrêt
+	// Wait for shutdown signal
 	<-stopChan
 
-	// Effectuer les opérations de nettoyage
-	fmt.Println("\n⏹️ Arrêt du serveur en cours...")
+	// Clean up
+	fmt.Println("\n⏹️ Shutting down server...")
 
-	// Journaliser l'arrêt du serveur
+	// Log server shutdown
 	utils.LogAuditEvent(
 		utils.EventTypeServerStopped,
 		"system",
 		"localhost",
-		"Arrêt propre du serveur",
+		"Clean server shutdown",
 		utils.RiskLow,
 		map[string]interface{}{
 			"uptime_seconds": time.Since(startTime).Seconds(),
 		},
 	)
 
-	// Donner du temps pour les écritures en cours
+	// Allow time for pending writes
 	time.Sleep(500 * time.Millisecond)
 
-	fmt.Println("✅ Serveur arrêté avec succès.")
+	fmt.Println("✅ Server shutdown successful.")
 }

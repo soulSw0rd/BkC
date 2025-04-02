@@ -1,269 +1,104 @@
+// utils/performance_monitor.go
 package utils
 
 import (
-	"encoding/json"
 	"fmt"
-	"os"
-	"path/filepath"
 	"runtime"
 	"sync"
 	"time"
 )
 
-// PerformanceMetrics représente les métriques de performance du système
-type PerformanceMetrics struct {
-	Timestamp      time.Time `json:"timestamp"`
-	CPUUsage       float64   `json:"cpu_usage"`       // Pourcentage d'utilisation CPU
-	MemoryUsage    uint64    `json:"memory_usage"`    // Utilisation mémoire en bytes
-	GoroutineCount int       `json:"goroutine_count"` // Nombre de goroutines
-	RequestCount   int64     `json:"request_count"`   // Nombre de requêtes traitées
-	ResponseTime   float64   `json:"response_time"`   // Temps de réponse moyen en ms
-	ErrorCount     int64     `json:"error_count"`     // Nombre d'erreurs
-	TxPoolSize     int       `json:"tx_pool_size"`    // Taille du pool de transactions
-	BlockTime      float64   `json:"block_time"`      // Temps moyen de création de bloc en s
-	HashRate       float64   `json:"hash_rate"`       // Taux de hachage estimé en H/s
+// PerformanceStats contient les statistiques de performance
+type PerformanceStats struct {
+	CPUUsage     float64
+	MemoryUsage  uint64
+	NumGoroutine int
+	LastUpdate   time.Time
+	Uptime       time.Duration
+	StartTime    time.Time
 }
 
 // PerformanceMonitor surveille les performances du système
 type PerformanceMonitor struct {
-	metrics        []PerformanceMetrics
-	requestCount   int64
-	errorCount     int64
-	responseTimes  []float64
-	lastSampleTime time.Time
-	outputFile     string
-	mutex          sync.RWMutex
-	isRunning      bool
-	stopChan       chan struct{}
+	stats    PerformanceStats
+	interval time.Duration
+	quit     chan struct{}
+	mu       sync.RWMutex
 }
 
-// Singleton global
-var (
-	performanceMonitor *PerformanceMonitor
-	perfMutex          sync.Mutex
-)
-
-// InitPerformanceMonitor initialise le moniteur de performance
-func InitPerformanceMonitor(outputFile string) {
-	perfMutex.Lock()
-	defer perfMutex.Unlock()
-
-	if performanceMonitor != nil {
-		return
+// NewPerformanceMonitor crée un nouveau moniteur de performances
+func NewPerformanceMonitor(interval time.Duration) *PerformanceMonitor {
+	return &PerformanceMonitor{
+		stats: PerformanceStats{
+			StartTime: time.Now(),
+		},
+		interval: interval,
+		quit:     make(chan struct{}),
 	}
-
-	performanceMonitor = &PerformanceMonitor{
-		metrics:        make([]PerformanceMetrics, 0),
-		responseTimes:  make([]float64, 0),
-		lastSampleTime: time.Now(),
-		outputFile:     outputFile,
-		isRunning:      false,
-		stopChan:       make(chan struct{}),
-	}
-
-	// Créer le répertoire si nécessaire
-	dir := filepath.Dir(outputFile)
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		LogToConsole("Erreur lors de la création du répertoire pour les métriques: %v", err)
-		return
-	}
-
-	// Démarrer le monitoring
-	go performanceMonitor.Start()
 }
 
-// Start démarre le monitoring périodique
+// Start démarre la surveillance des performances
 func (pm *PerformanceMonitor) Start() {
-	pm.mutex.Lock()
-	if pm.isRunning {
-		pm.mutex.Unlock()
-		return
-	}
-	pm.isRunning = true
-	pm.mutex.Unlock()
+	go func() {
+		ticker := time.NewTicker(pm.interval)
+		defer ticker.Stop()
 
-	// Échantillonnage toutes les 60 secondes
-	ticker := time.NewTicker(60 * time.Second)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ticker.C:
-			pm.collectMetrics(nil)
-		case <-pm.stopChan:
-			return
+		for {
+			select {
+			case <-ticker.C:
+				pm.updateStats()
+			case <-pm.quit:
+				return
+			}
 		}
-	}
+	}()
 }
 
-// Stop arrête le monitoring
+// Stop arrête la surveillance des performances
 func (pm *PerformanceMonitor) Stop() {
-	pm.mutex.Lock()
-	defer pm.mutex.Unlock()
-
-	if !pm.isRunning {
-		return
-	}
-
-	pm.isRunning = false
-	close(pm.stopChan)
-	pm.saveMetrics()
+	close(pm.quit)
 }
 
-// collectMetrics collecte les métriques de performance actuelles
-func (pm *PerformanceMonitor) collectMetrics(txPoolSize *int) {
-	pm.mutex.Lock()
-	defer pm.mutex.Unlock()
+// updateStats met à jour les statistiques de performance
+func (pm *PerformanceMonitor) updateStats() {
+	pm.mu.Lock()
+	defer pm.mu.Unlock()
 
+	// Mettre à jour le nombre de goroutines
+	pm.stats.NumGoroutine = runtime.NumGoroutine()
+
+	// Mettre à jour l'usage mémoire
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
+	pm.stats.MemoryUsage = memStats.Alloc
 
-	// Calculer l'utilisation CPU (simplifié)
-	cpuUsage := 0.0 // Dans une implémentation réelle, utilisez un package comme "github.com/shirou/gopsutil"
+	// Mettre à jour l'horodatage
+	pm.stats.LastUpdate = time.Now()
+	pm.stats.Uptime = time.Since(pm.stats.StartTime)
 
-	// Calculer le temps de réponse moyen
-	avgResponseTime := 0.0
-	if len(pm.responseTimes) > 0 {
-		sum := 0.0
-		for _, t := range pm.responseTimes {
-			sum += t
-		}
-		avgResponseTime = sum / float64(len(pm.responseTimes))
-	}
+	// Note: La mesure précise du CPU nécessiterait une bibliothèque externe
+	// Ceci est une approximation simplifiée
+	pm.stats.CPUUsage = float64(pm.stats.NumGoroutine) / 100.0
 
-	// Créer la métrique
-	metric := PerformanceMetrics{
-		Timestamp:      time.Now(),
-		CPUUsage:       cpuUsage,
-		MemoryUsage:    memStats.Alloc,
-		GoroutineCount: runtime.NumGoroutine(),
-		RequestCount:   pm.requestCount,
-		ResponseTime:   avgResponseTime,
-		ErrorCount:     pm.errorCount,
-	}
-
-	// Ajouter la taille du pool de transactions si fournie
-	if txPoolSize != nil {
-		metric.TxPoolSize = *txPoolSize
-	}
-
-	// Ajouter aux métriques
-	pm.metrics = append(pm.metrics, metric)
-
-	// Réinitialiser les compteurs
-	pm.requestCount = 0
-	pm.errorCount = 0
-	pm.responseTimes = make([]float64, 0)
-
-	// Enregistrer périodiquement
-	if len(pm.metrics) >= 60 { // Sauvegarder après 1 heure (60 échantillons)
-		pm.saveMetrics()
-		pm.metrics = pm.metrics[:0] // Vider le tableau
+	if pm.stats.MemoryUsage > 500*1024*1024 { // 500 MB
+		Warning("Usage mémoire élevé: %.2f MB", float64(pm.stats.MemoryUsage)/1024/1024)
 	}
 }
 
-// saveMetrics sauvegarde les métriques dans un fichier
-func (pm *PerformanceMonitor) saveMetrics() {
-	if len(pm.metrics) == 0 {
-		return
-	}
-
-	// Ouvrir le fichier en append ou le créer
-	file, err := os.OpenFile(pm.outputFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		LogToConsole("Erreur lors de l'ouverture du fichier de métriques: %v", err)
-		return
-	}
-	defer file.Close()
-
-	// Écrire chaque métrique sur une ligne
-	for _, metric := range pm.metrics {
-		data, err := json.Marshal(metric)
-		if err != nil {
-			LogToConsole("Erreur lors de la sérialisation de la métrique: %v", err)
-			continue
-		}
-
-		if _, err := file.Write(append(data, '\n')); err != nil {
-			LogToConsole("Erreur lors de l'écriture dans le fichier de métriques: %v", err)
-			return
-		}
-	}
+// GetStats récupère les statistiques de performance actuelles
+func (pm *PerformanceMonitor) GetStats() PerformanceStats {
+	pm.mu.RLock()
+	defer pm.mu.RUnlock()
+	return pm.stats
 }
 
-// RecordRequest enregistre une requête
-func RecordRequest() {
-	if performanceMonitor == nil {
-		return
-	}
-
-	performanceMonitor.mutex.Lock()
-	defer performanceMonitor.mutex.Unlock()
-
-	performanceMonitor.requestCount++
-}
-
-// RecordError enregistre une erreur
-func RecordError() {
-	if performanceMonitor == nil {
-		return
-	}
-
-	performanceMonitor.mutex.Lock()
-	defer performanceMonitor.mutex.Unlock()
-
-	performanceMonitor.errorCount++
-}
-
-// RecordResponseTime enregistre un temps de réponse
-func RecordResponseTime(duration time.Duration) {
-	if performanceMonitor == nil {
-		return
-	}
-
-	performanceMonitor.mutex.Lock()
-	defer performanceMonitor.mutex.Unlock()
-
-	performanceMonitor.responseTimes = append(performanceMonitor.responseTimes, float64(duration.Milliseconds()))
-}
-
-// UpdateBlockchainMetrics met à jour les métriques spécifiques à la blockchain
-func UpdateBlockchainMetrics(txPoolSize int, blockTime, hashRate float64) {
-	if performanceMonitor == nil {
-		return
-	}
-
-	performanceMonitor.mutex.Lock()
-	defer performanceMonitor.mutex.Unlock()
-
-	// Mettre à jour la dernière métrique si elle existe
-	if len(performanceMonitor.metrics) > 0 {
-		lastIndex := len(performanceMonitor.metrics) - 1
-		performanceMonitor.metrics[lastIndex].TxPoolSize = txPoolSize
-		performanceMonitor.metrics[lastIndex].BlockTime = blockTime
-		performanceMonitor.metrics[lastIndex].HashRate = hashRate
-	}
-}
-
-// GetCurrentMetrics retourne les métriques actuelles
-func GetCurrentMetrics() *PerformanceMetrics {
-	if performanceMonitor == nil {
-		return nil
-	}
-
-	performanceMonitor.mutex.RLock()
-	defer performanceMonitor.mutex.RUnlock()
-
-	if len(performanceMonitor.metrics) == 0 {
-		return nil
-	}
-
-	// Copier la dernière métrique
-	lastMetric := performanceMonitor.metrics[len(performanceMonitor.metrics)-1]
-	return &lastMetric
-}
-
-// LogToConsole écrit un message dans la console
-func LogToConsole(format string, args ...interface{}) {
-	fmt.Printf("[Performance Monitor] "+format+"\n", args...)
+// String retourne une représentation textuelle des statistiques
+func (ps PerformanceStats) String() string {
+	return fmt.Sprintf(
+		"CPU: %.2f%%, Mémoire: %.2f MB, Goroutines: %d, Uptime: %s",
+		ps.CPUUsage*100,
+		float64(ps.MemoryUsage)/1024/1024,
+		ps.NumGoroutine,
+		ps.Uptime.Round(time.Second),
+	)
 }
