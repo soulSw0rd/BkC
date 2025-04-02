@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contrats Intelligents | CryptoChain Go</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            primary: {
+              50: '#f4f5fa',
+              100: '#e8e9f5',
+              200: '#d0d2eb',
+              300: '#abb0db',
+              400: '#8187c8',
+              500: '#6366f1',
+              600: '#4d49c5',
+              700: '#3f3ba5',
+              800: '#343385',
+              900: '#2d2d6d',
+            }
+          },
+          animation: {
+            'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            'fade-in': 'fadeIn 0.5s ease-in-out',
+            'slide-up': 'slideUp 0.3s ease-out',
+          },
+          keyframes: {
+            fadeIn: {
+              '0%': { opacity: '0' },
+              '100%': { opacity: '1' },
+            },
+            slideUp: {
+              '0%': { transform: 'translateY(20px)', opacity: '0' },
+              '100%': { transform: 'translateY(0)', opacity: '1' },
+            },
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Styles de base communs */
+    .glass-panel {
+      @apply backdrop-blur-md bg-white/10 dark:bg-black/20 rounded-xl border border-white/20 dark:border-gray-800/50;
+    }
+    
+    /* Transitions entre thèmes */
+.dark body {
+  @apply bg-gray-900 text-white;
+  transition: background-color 0.5s ease, color 0.5s ease;
+}
+
+body {
+  @apply bg-gray-50 text-gray-900;
+  transition: background-color 0.5s ease, color 0.5s ease;
+}
+
+.contract-card {
+  transition: all 0.3s ease;
+}
+
+.contract-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.5);
+}
+
+  </style>
+  <script src="/static/js/theme.js" defer></script>
+</head>
+<body class="min-h-screen transition-colors duration-500 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+  
+  <!-- Barre de navigation -->
+  <nav class="glass-panel sticky top-0 z-50 px-4 py-3 shadow-lg">
+    <div class="container mx-auto flex justify-between items-center">
+      <a href="/home" class="flex items-center space-x-2">
+        <div class="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center text-white font-bold text-xl">
+          B<span class="text-xs">k</span>C
+        </div>
+        <span class="font-bold text-xl text-primary-600 dark:text-primary-400">CryptoChain Go</span>
+      </a>
+      
+      <div class="flex items-center space-x-2">
+        <a href="/blockchain" class="px-3 py-2 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/50 transition">🔗 Blockchain</a>
+        <a href="/transactions" class="px-3 py-2 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/50 transition">💸 Transactions</a>
+        <a href="/contracts" class="px-3 py-2 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/50 transition">📜 Contrats</a>
+        <a href="/stats" class="px-3 py-2 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/50 transition">📊 Stats</a>
+        
+        <button id="themeToggle" class="ml-2 w-10 h-10 rounded-full flex items-center justify-center bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition">
+          🌙
+        </button>
+        
+        <a href="/logout" class="ml-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition">
+          🚪
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Contenu principal -->
+  <div class="container mx-auto px-4 pt-24 pb-12">
+    <!-- Titre de la page -->
+    <div class="text-center mb-10 animate-fade-in">
+      <h1 class="text-4xl font-bold text-gray-900 dark:text-white mb-2">📜 Contrats Intelligents</h1>
+      <p class="text-lg text-gray-600 dark:text-gray-300">Créez et gérez des contrats programmables sur la blockchain</p>
+    </div>
+
+    <!-- Section des actions -->
+    <div class="flex justify-between items-center mb-8">
+      <div class="flex space-x-4">
+        <button id="newContractBtn" class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition">
+          + Nouveau contrat
+        </button>
+        <select id="contractTypeFilter" class="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white">
+          <option value="">Tous les types</option>
+          <option value="TRANSFER">Transfert simple</option>
+          <option value="MULTISIG">Multi-signature</option>
+          <option value="TIMELOCK">Transfert temporisé</option>
+          <option value="CONDITIONAL">Conditionnel</option>
+          <option value="ESCROW">Dépôt fiduciaire</option>
+        </select>
+      </div>
+      
+      <div>
+        <select id="contractStatusFilter" class="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white">
+          <option value="">Tous les statuts</option>
+          <option value="PENDING">En attente</option>
+          <option value="EXECUTED">Exécutés</option>
+          <option value="CANCELLED">Annulés</option>
+          <option value="EXPIRED">Expirés</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Liste des contrats -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in" id="contractsContainer">
+      {{range .Contracts}}
+      <div class="glass-panel p-6 contract-card">
+        <div class="flex justify-between items-start mb-4">
+          <div>
+            <span class="px-2 py-1 rounded-full text-xs 
+              {{if eq .Type "TRANSFER"}}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200
+              {{else if eq .Type "MULTISIG"}}bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200
+              {{else if eq .Type "TIMELOCK"}}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200
+              {{else if eq .Type "CONDITIONAL"}}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+              {{else}}bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200
+              {{end}}">
+              {{if eq .Type "TRANSFER"}}Transfert
+              {{else if eq .Type "MULTISIG"}}Multi-signature
+              {{else if eq .Type "TIMELOCK"}}Temporisé
+              {{else if eq .Type "CONDITIONAL"}}Conditionnel
+              {{else if eq .Type "ESCROW"}}Dépôt fiduciaire
+              {{end}}
+            </span>
+          </div>
+          
+          <span class="px-2 py-1 rounded-full text-xs
+            {{if eq .Status "PENDING"}}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200
+            {{else if eq .Status "EXECUTED"}}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+            {{else if eq .Status "CANCELLED"}}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200
+            {{else}}bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200
+            {{end}}">
+            {{if eq .Status "PENDING"}}En attente
+            {{else if eq .Status "EXECUTED"}}Exécuté
+            {{else if eq .Status "CANCELLED"}}Annulé
+            {{else if eq .Status "EXPIRED"}}Expiré
+            {{end}}
+          </span>
+        </div>
+        
+        <h3 class="text-xl font-semibold text-gray-800 dark:text-white mb-2 truncate" title="{{.ID}}">
+          Contrat #{{slice .ID 0 8}}...
+        </h3>
+        
+        <div class="space-y-3 mt-4">
+          <div>
+            <span class="text-gray-500 dark:text-gray-400 text-sm">Créé par</span>
+            <p class="font-medium">{{.CreatedBy}}</p>
+          </div>
+          
+          <div>
+            <span class="text-gray-500 dark:text-gray-400 text-sm">Destinataire</span>
+            <p class="font-medium">{{.Recipient}}</p>
+          </div>
+          
+          <div>
+            <span class="text-gray-500 dark:text-gray-400 text-sm">Montant</span>
+            <p class="font-medium text-lg">{{.Amount}} BCK</p>
+          </div>
+          
+          <div>
+            <span class="text-gray-500 dark:text-gray-400 text-sm">Expire le</span>
+            <p class="font-medium">{{.ExpiresAt.Format "02/01/2006 15:04"}}</p>
+          </div>
+        </div>
+        
+        <div class="mt-6 flex flex-col space-y-2">
+          {{if eq .Status "PENDING"}}
+            {{if isParticipant .Participants $.Username}}
+              {{if not (hasApproved .Approvals $.Username)}}
+                <button class="approve-btn w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition" data-contract-id="{{.ID}}">
+                  Approuver
+                </button>
+              {{else}}
+                <span class="text-center px-4 py-2 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 rounded-lg">
+                  Approuvé
+                </span>
+              {{/if}}
+            {{/if}}
+            
+            {{if eq .CreatedBy $.Username}}
+              <button class="cancel-btn w-full px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition" data-contract-id="{{.ID}}">
+                Annuler
+              </button>
+            {{/if}}
+          {{else if eq .Status "EXECUTED"}}
+            {{if .TxID}}
+              <a href="/transaction/{{.TxID}}" class="text-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition">
+                Voir la transaction
+              </a>
+            {{/if}}
+          {{/if}}
+          
+          <a href="/contract/{{.ID}}" class="text-center px-4 py-2 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition">
+            Détails
+          </a>
+        </div>
+      </div>
+      {{else}}
+      <div class="col-span-full text-center py-12">
+        <div class="text-6xl mb-4">📜</div>
+        <h3 class="text-2xl font-semibold mb-2 text-gray-800 dark:text-white">Aucun contrat trouvé</h3>
+        <p class="text-gray-600 dark:text-gray-400 mb-6">Vous n'avez pas encore créé ou participé à des contrats intelligents.</p>
+        <button id="emptyNewContractBtn" class="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-lg transition">
+          Créer mon premier contrat
+        </button>
+      </div>
+      {{end}}
+    </div>
+  </div>
+
+  <!-- Formulaire de création de contrat (Modal) -->
+  <div id="newContractModal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 hidden animate-fade-in">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-8 max-w-xl w-full max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Créer un nouveau contrat intelligent</h2>
+        <button id="closeModal" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      
+      <form id="newContractForm" class="space-y-6">
+        <!-- Type de contrat -->
+        <div>
+          <label for="contractType" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Type de contrat</label>
+          <select id="contractType" name="contractType" class="w-full px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white">
+            <option value="TRANSFER">Transfert simple</option>
+            <option value="MULTISIG">Multi-signature</option>
+            <option value="TIMELOCK">Transfert temporisé</option>
+            <option value="CONDITIONAL">Conditionnel</option>
+            <option value="ESCROW">Dépôt fiduciaire</option>
+          </select>
+        </div>
+        
+        <!-- Montant -->
+        <div>
+          <label for="contractAmount" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Montant (BCK)</label>
+          <input type="number" id="contractAmount" name="amount" step="0.01" min="0.01" required class="w-full px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white">
+        </div>
+        
+        <!-- Frais -->
+        <div>
+          <label for="contractFee" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Frais (BCK)</label>
+          <input type="number" id="contractFee" name="fee" step="0.0001" min="0.0001" value="0.001" required class="w-full px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white">
+        </div>
+        
+        <!-- Destinataire -->
+        <div>
+          <label for="contractRecipient" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Destinataire</label>
+          <input type="text" id="contractRecipient" name="recipient" required class="w-full px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white">
+        </div>
+        
+        <!-- Participants (pour les contrats multi-signature) -->
+        <div id="participantsSection" class="hidden">
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Participants</label>
+          <div id="participantsList" class="space-y-2">
+            <div class="flex">
+              <input type="text" name="participants[]" class="flex-1 px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white">
+              <button type="button" class="remove-participant ml-2 px-2 py-2 bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 rounded-lg">
+                ✕
+              </button>
+            </div>
+          </div>
+          <button type="button" id="addParticipant" class="mt-2 text-primary-600 dark:text-primary-400 hover:underline">
+            + Ajouter un participant
+          </button>
+          
+          <div class="mt-4">
+            <label for="requiredApprovals" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Approbations requises</label>
+            <input type="number" id="requiredApprovals" name="requiredApprovals" min="1" value="1" required class="w-full px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white">
+          </div>
+        </div>
+        
+        <!-- Date d'expiration (pour les contrats temporisés) -->
+        <div id="expirationSection" class="hidden">
+          <label for="expirationDate" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date d'expiration</label>
+          <input type="datetime-local" id="expirationDate" name="expiresAt" class="w-full px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white">
+        </div>
+        
+        <!-- Conditions (pour les contrats conditionnels) -->
+        <div id="conditionsSection" class="hidden">
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Conditions</label>
+          <div id="conditionsList" class="space-y-2">
+            <div class="flex">
+              <input type="text" name="conditionKeys[]" placeholder="Clé" class="w-1/3 px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white">
+              <input type="text" name="conditionValues[]" placeholder="Valeur" class="flex-1 ml-2 px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white">
+              <button type="button" class="remove-condition ml-2 px-2 py-2 bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 rounded-lg">
+                ✕
+              </button>
+            </div>
+          </div>
+          <button type="button" id="addCondition" class="mt-2 text-primary-600 dark:text-primary-400 hover:underline">
+            + Ajouter une condition
+          </button>
+        </div>
+        
+        <!-- Données supplémentaires -->
+        <div>
+          <label for="contractData" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Données supplémentaires (optionnel)</label>
+          <textarea id="contractData" name="data" rows="3" class="w-full px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white"></textarea>
+        </div>
+        
+        <!-- Bouton de soumission -->
+        <div class="flex justify-end">
+          <button type="button" id="cancelContract" class="px-4 py-2 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg transition mr-2">
+            Annuler
+          </button>
+          <button type="submit" class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition">
+            Créer le contrat
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Pied de page -->
+  <footer class="text-center py-6 text-gray-500 dark:text-gray-400">
+    CryptoChain Go © 2025 - Sécurisé et transparent
+  </footer>
+
+  <!-- Scripts -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Gestion de l'affichage des sections spécifiques selon le type de contrat
+      const contractType = document.getElementById('contractType');
+      const participantsSection = document.getElementById('participantsSection');
+      const expirationSection = document.getElementById('expirationSection');
+      const conditionsSection = document.getElementById('conditionsSection');
+      
+      contractType.addEventListener('change', () => {
+        // Réinitialiser tous les sections
+        participantsSection.classList.add('hidden');
+        expirationSection.classList.add('hidden');
+        conditionsSection.classList.add('hidden');
+        
+        // Afficher la section correspondante au type de contrat
+        switch (contractType.value) {
+          case 'MULTISIG':
+            participantsSection.classList.remove('hidden');
+            break;
+          case 'TIMELOCK':
+            expirationSection.classList.remove('hidden');
+            break;
+          case 'CONDITIONAL':
+            conditionsSection.classList.remove('hidden');
+            break;
+          case 'ESCROW':
+            participantsSection.classList.remove('hidden');
+            conditionsSection.classList.remove('hidden');
+            break;
+        }
+      });
+      
+      // Gestion des participants
+      const addParticipant = document.getElementById('addParticipant');
+      const participantsList = document.getElementById('participantsList');
+      
+      addParticipant.addEventListener('click', () => {
+        const newParticipant = document.createElement('div');
+        newParticipant.className = 'flex';
+        newParticipant.innerHTML = `
+          <input type="text" name="participants[]" class="flex-1 px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white">
+          <button type="button" class="remove-participant ml-2 px-2 py-2 bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 rounded-lg">
+            ✕
+          </button>
+        `;
+        participantsList.appendChild(newParticipant);
+        
+        // Mettre à jour le nombre minimum d'approbations
+        const requiredApprovals = document.getElementById('requiredApprovals');
+        requiredApprovals.max = participantsList.children.length;
+      });
+      
+      
+      // Supprimer les participants
+      participantsList.addEventListener('click', (e) => {
+        if (e.target.classList.contains('remove-participant')) {
+          e.target.closest('div').remove();
+          
+          // Mettre à jour le nombre minimum d'approbations
+          const requiredApprovals = document.getElementById('requiredApprovals');
+          requiredApprovals.max = participantsList.children.length;
+          if (parseInt(requiredApprovals.value) > participantsList.children.length) {
+            requiredApprovals.value = participantsList.children.length;
+          }
+        }
+      });
+      
+      // Gestion des conditions
+      const addCondition = document.getElementById('addCondition');
+      const conditionsList = document.getElementById('conditionsList');
+      
+      addCondition.addEventListener('click', () => {
+        const newCondition = document.createElement('div');
+        newCondition.className = 'flex';
+        newCondition.innerHTML = `
+          <input type="text" name="conditionKeys[]" placeholder="Clé" class="w-1/3 px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white">
+          <input type="text" name="conditionValues[]" placeholder="Valeur" class="flex-1 ml-2 px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white">
+          <button type="button" class="remove-condition ml-2 px-2 py-2 bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 rounded-lg">
+            ✕
+          </button>
+        `;
+        conditionsList.appendChild(newCondition);
+      });
+      
+      // Supprimer les conditions
+      conditionsList.addEventListener('click', (e) => {
+        if (e.target.classList.contains('remove-condition')) {
+          e.target.closest('div').remove();
+        }
+      });
+      
+      // Ouvrir/fermer la modal de création de contrat
+      const newContractBtn = document.getElementById('newContractBtn');
+      const emptyNewContractBtn = document.getElementById('emptyNewContractBtn');
+      const newContractModal = document.getElementById('newContractModal');
+      const closeModal = document.getElementById('closeModal');
+      const cancelContract = document.getElementById('cancelContract');
+      
+      function openModal() {
+        newContractModal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden'; // Empêcher le défilement du body
+      }
+      
+      function closeContractModal() {
+        newContractModal.classList.add('hidden');
+        document.body.style.overflow = ''; // Réactiver le défilement du body
+        document.getElementById('newContractForm').reset();
+      }
+      
+      if (newContractBtn) newContractBtn.addEventListener('click', openModal);
+      if (emptyNewContractBtn) emptyNewContractBtn.addEventListener('click', openModal);
+      if (closeModal) closeModal.addEventListener('click', closeContractModal);
+      if (cancelContract) cancelContract.addEventListener('click', closeContractModal);
+      
+      // Fermer la modal en cliquant à l'extérieur
+      newContractModal.addEventListener('click', (e) => {
+        if (e.target === newContractModal) {
+          closeContractModal();
+        }
+      });
+      
+      // Gestion de la soumission du formulaire
+      const newContractForm = document.getElementById('newContractForm');
+      
+      newContractForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        // Récupérer tous les champs du formulaire
+        const formData = new FormData(newContractForm);
+        const contractData = {
+          type: formData.get('contractType'),
+          amount: parseFloat(formData.get('amount')),
+          fee: parseFloat(formData.get('fee')),
+          recipient: formData.get('recipient'),
+          data: formData.get('data') || ''
+        };
+        
+        // Ajouter les champs spécifiques selon le type de contrat
+        switch (contractData.type) {
+          case 'MULTISIG':
+            const participants = Array.from(formData.getAll('participants[]')).filter(p => p);
+            
+            if (participants.length === 0) {
+              alert('Veuillez ajouter au moins un participant');
+              return;
+            }
+            
+            contractData.participants = participants;
+            contractData.requiredApprovals = parseInt(formData.get('requiredApprovals'));
+            
+            if (contractData.requiredApprovals > participants.length) {
+              alert('Le nombre d\'approbations requises ne peut pas dépasser le nombre de participants');
+              return;
+            }
+            break;
+            
+          case 'TIMELOCK':
+            const expiresAt = formData.get('expiresAt');
+            
+            if (!expiresAt) {
+              alert('Veuillez spécifier une date d\'expiration');
+              return;
+            }
+            
+            contractData.expiresAt = new Date(expiresAt).toISOString();
+            break;
+            
+          case 'CONDITIONAL':
+          case 'ESCROW':
+            const keys = Array.from(formData.getAll('conditionKeys[]'));
+            const values = Array.from(formData.getAll('conditionValues[]'));
+            
+            const conditions = {};
+            for (let i = 0; i < keys.length; i++) {
+              if (keys[i] && values[i]) {
+                conditions[keys[i]] = values[i];
+              }
+            }
+            
+            if (Object.keys(conditions).length === 0 && (contractData.type === 'CONDITIONAL' || contractData.type === 'ESCROW')) {
+              alert('Veuillez ajouter au moins une condition');
+              return;
+            }
+            
+            contractData.conditions = conditions;
+            
+            if (contractData.type === 'ESCROW') {
+              const participants = Array.from(formData.getAll('participants[]')).filter(p => p);
+              
+              if (participants.length === 0) {
+                alert('Veuillez ajouter au moins un participant');
+                return;
+              }
+              
+              contractData.participants = participants;
+              contractData.requiredApprovals = parseInt(formData.get('requiredApprovals'));
+            }
+            break;
+        }
+        
+        try {
+          // Envoyer la requête au serveur
+          const response = await fetch('/api/contracts', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(contractData)
+          });
+          
+          if (!response.ok) {
+            throw new Error('Erreur lors de la création du contrat');
+          }
+          
+          const result = await response.json();
+          
+          // Afficher une notification de succès
+          alert('Contrat créé avec succès !');
+          
+          // Fermer la modal et actualiser la page
+          closeContractModal();
+          window.location.reload();
+          
+        } catch (error) {
+          console.error('Erreur:', error);
+          alert('Erreur lors de la création du contrat: ' + error.message);
+        }
+      });
+      
+      // Filtrage des contrats
+      const contractTypeFilter = document.getElementById('contractTypeFilter');
+      const contractStatusFilter = document.getElementById('contractStatusFilter');
+      const contractsContainer = document.getElementById('contractsContainer');
+      
+      function filterContracts() {
+        const typeFilter = contractTypeFilter.value;
+        const statusFilter = contractStatusFilter.value;
+        
+        const contractCards = contractsContainer.querySelectorAll('.contract-card');
+        
+        contractCards.forEach(card => {
+          let showCard = true;
+          
+          // Filtrer par type
+          if (typeFilter && !card.querySelector(`[data-type="${typeFilter}"]`)) {
+            showCard = false;
+          }
+          
+          // Filtrer par statut
+          if (statusFilter && !card.querySelector(`[data-status="${statusFilter}"]`)) {
+            showCard = false;
+          }
+          
+          // Afficher ou masquer la carte
+          if (showCard) {
+            card.classList.remove('hidden');
+          } else {
+            card.classList.add('hidden');
+          }
+        });
+      }
+      
+      if (contractTypeFilter) contractTypeFilter.addEventListener('change', filterContracts);
+      if (contractStatusFilter) contractStatusFilter.addEventListener('change', filterContracts);
+      
+      // Gestion des boutons d'approbation et d'annulation
+      document.querySelectorAll('.approve-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const contractId = btn.getAttribute('data-contract-id');
+          
+          try {
+            const response = await fetch(`/api/contracts/${contractId}/approve`, {
+              method: 'POST'
+            });
+            
+            if (!response.ok) {
+              throw new Error('Erreur lors de l\'approbation du contrat');
+            }
+            
+            // Actualiser la page après approbation
+            window.location.reload();
+            
+          } catch (error) {
+            console.error('Erreur:', error);
+            alert('Erreur lors de l\'approbation du contrat: ' + error.message);
+          }
+        });
+      });
+      
+      document.querySelectorAll('.cancel-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          if (!confirm('Êtes-vous sûr de vouloir annuler ce contrat ?')) {
+            return;
+          }
+          
+          const contractId = btn.getAttribute('data-contract-id');
+          
+          try {
+            const response = await fetch(`/api/contracts/${contractId}/cancel`, {
+              method: 'POST'
+            });
+            
+            if (!response.ok) {
+              throw new Error('Erreur lors de l\'annulation du contrat');
+            }
+            
+            // Actualiser la page après annulation
+            window.location.reload();
+            
+          } catch (error) {
+            console.error('Erreur:', error);
+            alert('Erreur lors de l\'annulation du contrat: ' + error.message);
+          }
+        });
+      });
+      
+      // Initialiser l'affichage correct du formulaire au chargement
+      contractType.dispatchEvent(new Event('change'));
+    });
+  </script>
+</body>
+</html>

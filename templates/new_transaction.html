@@ -1,161 +1,304 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nouvelle Transaction | CryptoChain Go</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="/static/css/main.css">
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: {
-                            50: '#f5f3ff',
-                            100: '#ede9fe',
-                            200: '#ddd6fe',
-                            300: '#c4b5fd',
-                            400: '#a78bfa',
-                            500: '#8b5cf6',
-                            600: '#7c3aed',
-                            700: '#6d28d9',
-                            800: '#5b21b6',
-                            900: '#4c1d95',
-                        },
-                    }
-                }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nouvelle Transaction | CryptoChain Go</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            primary: {
+              50: '#f4f5fa',
+              100: '#e8e9f5',
+              200: '#d0d2eb',
+              300: '#abb0db',
+              400: '#8187c8',
+              500: '#6366f1',
+              600: '#4d49c5',
+              700: '#3f3ba5',
+              800: '#343385',
+              900: '#2d2d6d',
             }
+          }
         }
-    </script>
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="/static/css/main.css">
+  <script src="/static/js/theme.js" defer></script>
+  <script src="/static/js/transaction-animation.js" defer></script>
 </head>
-<body class="bg-gradient-to-br from-gray-900 via-indigo-900 to-purple-900 text-white min-h-screen">
-    <!-- Barre de navigation -->
-    <nav class="glass-effect p-4 fixed w-full top-0 shadow-lg flex justify-between items-center z-10">
-        <a href="/home" class="text-xl font-bold text-primary-400">CryptoChain Go</a>
-        <div class="flex space-x-2">
-            <a href="/blockchain" class="px-3 py-2 rounded-lg text-white hover:bg-primary-700 transition">🔗 Blockchain</a>
-            <a href="/transactions" class="px-3 py-2 rounded-lg text-white hover:bg-primary-700 transition">💸 Transactions</a>
-            <a href="/stats" class="px-3 py-2 rounded-lg text-white hover:bg-primary-700 transition">📊 Stats</a>
-            <a href="/home" class="px-3 py-2 rounded-lg text-white hover:bg-primary-700 transition">🏠 Accueil</a>
-            <a href="/logout" class="px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition">🚪 Déconnexion</a>
+<body class="min-h-screen transition-colors duration-500 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+  <!-- Barre de navigation -->
+  <nav class="glass-panel sticky top-0 z-50 px-4 py-3 shadow-lg">
+    <div class="container mx-auto flex justify-between items-center">
+      <a href="/home" class="flex items-center space-x-2">
+        <div class="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center text-white font-bold text-xl">
+          B<span class="text-xs">k</span>C
         </div>
-    </nav>
+        <span class="font-bold text-xl text-primary-600 dark:text-primary-400">CryptoChain Go</span>
+      </a>
+      
+      <div class="flex items-center space-x-2">
+        <a href="/blockchain" class="px-3 py-2 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/50 transition">🔗 Blockchain</a>
+        <a href="/transactions" class="px-3 py-2 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/50 transition">💸 Transactions</a>
+        <a href="/stats" class="px-3 py-2 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/50 transition">📊 Stats</a>
+        <a href="/home" class="px-3 py-2 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/50 transition">🏠 Accueil</a>
+        
+        <button id="themeToggle" class="ml-2 w-10 h-10 rounded-full flex items-center justify-center bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition">
+          🌙
+        </button>
+        
+        <a href="/logout" class="ml-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition">
+          🚪
+        </a>
+      </div>
+    </div>
+  </nav>
 
-    <!-- Contenu principal -->
-    <div class="container mx-auto px-4 pt-24 pb-12">
-        <!-- Titre de la page -->
-        <div class="text-center mb-10">
-            <h1 class="text-4xl font-bold text-white mb-2">💸 Nouvelle Transaction</h1>
-            <p class="text-lg text-indigo-200">Effectuez un transfert de BCK en toute sécurité</p>
-        </div>
-
-        <!-- Formulaire de transaction -->
-        <div class="max-w-2xl mx-auto">
-            <div class="glass-effect rounded-xl shadow-2xl p-8">
-                <form id="transactionForm" data-endpoint="/api/transactions" class="space-y-6">
-                    <!-- Solde actuel -->
-                    <div class="mb-8 text-center">
-                        <p class="text-indigo-300 mb-2">Votre solde actuel</p>
-                        <p class="text-4xl font-bold">{{printf "%.2f" .Balance}} <span class="text-xl text-indigo-300">BCK</span></p>
-                    </div>
-
-                    <!-- Destinataire -->
-                    <div class="form-group">
-                        <label for="recipient" class="block text-sm font-medium text-indigo-200 mb-2">Destinataire</label>
-                        <input type="text" id="recipient" name="recipient" required
-                            class="w-full bg-indigo-900/50 border border-indigo-700 rounded-lg px-4 py-3 text-white placeholder-indigo-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
-                            placeholder="Adresse du destinataire">
-                    </div>
-
-                    <!-- Montant -->
-                    <div class="form-group">
-                        <label for="amount" class="block text-sm font-medium text-indigo-200 mb-2">Montant (BCK)</label>
-                        <div class="relative">
-                            <input type="number" id="amount" name="amount" required step="0.01" min="0.01" max="{{.Balance}}"
-                                class="w-full bg-indigo-900/50 border border-indigo-700 rounded-lg px-4 py-3 text-white placeholder-indigo-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
-                                placeholder="0.00">
-                            <span class="absolute right-4 top-3 text-indigo-400">BCK</span>
-                        </div>
-                    </div>
-
-                    <!-- Message (optionnel) -->
-                    <div class="form-group">
-                        <label for="message" class="block text-sm font-medium text-indigo-200 mb-2">Message (optionnel)</label>
-                        <textarea id="message" name="message"
-                            class="w-full bg-indigo-900/50 border border-indigo-700 rounded-lg px-4 py-3 text-white placeholder-indigo-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
-                            placeholder="Ajoutez un message à votre transaction" rows="3"></textarea>
-                    </div>
-
-                    <!-- Bouton de soumission -->
-                    <div class="mt-8">
-                        <button type="submit"
-                            class="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold py-4 px-6 rounded-lg transition transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-indigo-900">
-                            Envoyer la transaction
-                        </button>
-                    </div>
-                </form>
-            </div>
-
-            <!-- Informations supplémentaires -->
-            <div class="mt-8 text-center text-indigo-300 text-sm">
-                <p>Les transactions sont généralement confirmées en moins de 5 minutes.</p>
-                <p class="mt-2">Des frais de transaction de 0.1% seront appliqués.</p>
-            </div>
-        </div>
+  <!-- Contenu principal -->
+  <div class="container mx-auto px-4 pt-24 pb-12">
+    <!-- Titre de la page -->
+    <div class="text-center mb-10 animate-fade-in">
+      <h1 class="text-4xl font-bold text-gray-900 dark:text-white mb-2">💸 Nouvelle Transaction</h1>
+      <p class="text-lg text-gray-600 dark:text-gray-300">Effectuez un transfert de BCK en toute sécurité</p>
     </div>
 
-    <!-- Pied de page -->
-    <footer class="text-center py-6 text-indigo-400">
-        CryptoChain Go © 2025 - Sécurisé et transparent
-    </footer>
+    <!-- Formulaire de transaction -->
+    <div class="max-w-2xl mx-auto">
+      <div class="glass-panel p-8 shadow-2xl animate-slide-up">
+        <form id="transactionForm" class="space-y-6">
+          <!-- Solde actuel -->
+          <div class="mb-8 text-center">
+            <p class="text-gray-600 dark:text-gray-300 mb-2">Votre solde actuel</p>
+            <p class="text-4xl font-bold text-gray-900 dark:text-white" id="sender-wallet">{{printf "%.2f" .Balance}} <span class="text-xl text-gray-500 dark:text-gray-400">BCK</span></p>
+          </div>
 
-    <!-- Scripts -->
-    <script src="/static/js/main.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const form = document.getElementById('transactionForm');
-            const amountInput = document.getElementById('amount');
-            const maxBalance = {{.Balance}};
+          <!-- Destinataire -->
+          <div class="form-group">
+            <label for="recipient" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Destinataire</label>
+            <input type="text" id="recipient" name="recipientAddress" required
+                class="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-3 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
+                placeholder="Adresse du destinataire">
+          </div>
 
-            // Validation du montant en temps réel
-            amountInput.addEventListener('input', (e) => {
-                const amount = parseFloat(e.target.value);
-                if (amount > maxBalance) {
-                    amountInput.setCustomValidity(`Le montant ne peut pas dépasser votre solde de ${maxBalance} BCK`);
-                } else if (amount <= 0) {
-                    amountInput.setCustomValidity('Le montant doit être supérieur à 0');
-                } else {
-                    amountInput.setCustomValidity('');
-                }
-            });
+          <!-- Montant -->
+          <div class="form-group">
+            <label for="amount" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Montant (BCK)</label>
+            <div class="relative">
+              <input type="number" id="amount" name="amount" required step="0.01" min="0.01" max="{{.Balance}}"
+                  class="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-3 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
+                  placeholder="0.00">
+              <span class="absolute right-4 top-3 text-gray-500 dark:text-gray-400">BCK</span>
+            </div>
+          </div>
 
-            // Gestion de la soumission du formulaire
-            form.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const submitButton = form.querySelector('button[type="submit"]');
-                submitButton.disabled = true;
-                submitButton.innerHTML = 'Transaction en cours...';
+          <!-- Frais de transaction -->
+          <div class="form-group">
+            <label for="fee" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Frais de transaction</label>
+            <div class="relative">
+              <input type="number" id="fee" name="fee" required step="0.0001" min="0.0001" value="0.0010"
+                  class="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-3 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
+                  placeholder="0.0010">
+              <span class="absolute right-4 top-3 text-gray-500 dark:text-gray-400">BCK</span>
+            </div>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Les frais plus élevés accélèrent la confirmation de votre transaction.</p>
+          </div>
 
-                try {
-                    const formData = new FormData(form);
-                    const transaction = await TransactionManager.createTransaction({
-                        recipient: formData.get('recipient'),
-                        amount: parseFloat(formData.get('amount')),
-                        message: formData.get('message')
-                    });
+          <!-- Zone du destinataire (pour animation) -->
+          <div class="mt-8 p-6 bg-white/5 dark:bg-black/10 rounded-lg border border-gray-200 dark:border-gray-700">
+            <div class="text-center">
+              <div class="w-16 h-16 bg-gray-200 dark:bg-gray-700 rounded-full mx-auto flex items-center justify-center" id="recipient-wallet">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+              </div>
+              <p class="mt-2 text-sm text-gray-500 dark:text-gray-400" id="recipient-address">Entrez une adresse de destinataire</p>
+            </div>
+          </div>
 
-                    window.notifications.show('Transaction envoyée avec succès !', 'success');
-                    setTimeout(() => {
-                        window.location.href = '/transactions';
-                    }, 1500);
-                } catch (error) {
-                    window.notifications.show('Erreur lors de l\'envoi de la transaction', 'error');
-                    submitButton.disabled = false;
-                    submitButton.innerHTML = 'Envoyer la transaction';
-                }
-            });
-        });
-    </script>
+          <!-- Bouton de soumission -->
+          <div class="mt-8">
+            <button type="submit"
+                class="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold py-4 px-6 rounded-lg transition transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-gray-100 dark:focus:ring-offset-gray-900 animate-pulse-slow">
+              Envoyer la transaction
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Informations supplémentaires -->
+      <div class="mt-8 text-center text-gray-500 dark:text-gray-400 text-sm animate-fade-in">
+        <p>Les transactions sont généralement confirmées en moins de 5 minutes.</p>
+        <p class="mt-2">Des frais de transaction de 0.1% seront appliqués.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pied de page -->
+  <footer class="text-center py-6 text-gray-500 dark:text-gray-400">
+    CryptoChain Go © 2025 - Sécurisé et transparent
+  </footer>
+
+  <!-- Notification container -->
+  <div id="notification-container" class="fixed bottom-4 right-4 z-50"></div>
+
+  <!-- Scripts -->
+  <script src="/static/js/main.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const form = document.getElementById('transactionForm');
+      const amountInput = document.getElementById('amount');
+      const recipientInput = document.getElementById('recipient');
+      const feeInput = document.getElementById('fee');
+      const recipientAddress = document.getElementById('recipient-address');
+      const maxBalance = {{.Balance}};
+
+      // Mise à jour de l'adresse du destinataire en temps réel
+      recipientInput.addEventListener('input', (e) => {
+        const address = e.target.value;
+        if (address) {
+          recipientAddress.textContent = address;
+          
+          // Générer une couleur unique basée sur l'adresse
+          const hash = simpleHash(address);
+          const hue = (parseInt(hash, 16) % 360);
+          const color = `hsl(${hue}, 70%, 60%)`;
+          
+          // Mettre à jour l'avatar du destinataire
+          const recipientWallet = document.getElementById('recipient-wallet');
+          recipientWallet.innerHTML = `<div class="text-lg font-bold text-white">${address.charAt(0).toUpperCase()}</div>`;
+          recipientWallet.style.backgroundColor = color;
+        } else {
+          recipientAddress.textContent = "Entrez une adresse de destinataire";
+          const recipientWallet = document.getElementById('recipient-wallet');
+          recipientWallet.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+          `;
+          recipientWallet.style.backgroundColor = '';
+        }
+      });
+
+      // Validation du montant en temps réel
+      amountInput.addEventListener('input', (e) => {
+        const amount = parseFloat(e.target.value);
+        if (amount > maxBalance) {
+          amountInput.setCustomValidity(`Le montant ne peut pas dépasser votre solde de ${maxBalance} BCK`);
+        } else if (amount <= 0) {
+          amountInput.setCustomValidity('Le montant doit être supérieur à 0');
+        } else {
+          amountInput.setCustomValidity('');
+        }
+      });
+
+      // Gestion de la soumission du formulaire
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        // Vérifier la validité du formulaire
+        if (!form.checkValidity()) {
+          return;
+        }
+        
+        const submitButton = form.querySelector('button[type="submit"]');
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<div class="animate-spin h-5 w-5 mr-2 border-2 border-white border-t-transparent rounded-full inline-block"></div> Transaction en cours...';
+
+        try {
+          // Simuler une clé privée (dans un système réel, elle serait stockée en sécurité)
+          const senderPrivateKey = "DEMO_ONLY_{{.Username}}";
+          const senderAddress = "{{.Username}}";
+          
+          // Préparer les données de la transaction
+          const formData = new FormData(form);
+          const transactionData = {
+            senderPrivateKey: senderPrivateKey,
+            senderAddress: senderAddress,
+            recipientAddress: formData.get('recipientAddress'),
+            amount: parseFloat(formData.get('amount')),
+            fee: parseFloat(formData.get('fee'))
+          };
+
+          // Envoyer la transaction à l'API
+          const response = await fetch('/api/transactions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(transactionData)
+          });
+
+          const result = await response.json();
+
+          if (result.success) {
+            // Animer la transaction
+            window.transactionAnimator.animateTransaction(
+              'sender-wallet', 
+              'recipient-wallet', 
+              transactionData.amount,
+              { color: '#6366f1' }
+            );
+            
+            // Afficher une notification de succès
+            showNotification('Transaction envoyée avec succès !', 'success');
+            
+            // Rediriger vers la page des transactions après un délai
+            setTimeout(() => {
+              window.location.href = '/transactions';
+            }, 2500);
+          } else {
+            showNotification('Erreur: ' + result.message, 'error');
+            submitButton.disabled = false;
+            submitButton.innerHTML = 'Envoyer la transaction';
+          }
+        } catch (error) {
+          showNotification('Erreur lors de l\'envoi de la transaction', 'error');
+          submitButton.disabled = false;
+          submitButton.innerHTML = 'Envoyer la transaction';
+        }
+      });
+      
+      // Fonction utilitaire pour afficher des notifications
+      function showNotification(message, type = 'info') {
+        const notification = document.createElement('div');
+        notification.className = `p-4 mb-4 text-sm rounded-lg animate-slide-up ${
+          type === 'success' 
+            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
+            : type === 'error' 
+              ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+              : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+        }`;
+        notification.innerHTML = message;
+        
+        const container = document.getElementById('notification-container');
+        container.appendChild(notification);
+        
+        setTimeout(() => {
+          notification.classList.remove('animate-slide-up');
+          notification.classList.add('animate-slide-down');
+          setTimeout(() => {
+            notification.remove();
+          }, 300);
+        }, 3000);
+      }
+      
+      // Fonction de hachage simple pour générer des couleurs cohérentes
+      function simpleHash(str) {
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+          const char = str.charCodeAt(i);
+          hash = ((hash << 5) - hash) + char;
+          hash = hash & hash;
+        }
+        return Math.abs(hash).toString(16);
+      }
+    });
+  </script>
 </body>
-</html> 
+</html>

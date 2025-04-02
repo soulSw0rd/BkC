@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{.Title}} | CryptoChain Go</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            primary: {
+              50: '#f4f5fa',
+              100: '#e8e9f5',
+              200: '#d0d2eb',
+              300: '#abb0db',
+              400: '#8187c8',
+              500: '#6366f1',
+              600: '#4d49c5',
+              700: '#3f3ba5',
+              800: '#343385',
+              900: '#2d2d6d',
+            },
+            secondary: {
+              50: '#f6faf3',
+              100: '#eaf5e5',
+              200: '#d3ebcc',
+              300: '#b0d9a5',
+              400: '#86bf77',
+              500: '#5ba150',
+              600: '#428140',
+              700: '#356935',
+              800: '#2d542d',
+              900: '#264527',
+            }
+          },
+          animation: {
+            'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            'fade-in': 'fadeIn 0.5s ease-in-out',
+            'slide-up': 'slideUp 0.3s ease-out',
+            'slide-down': 'slideDown 0.3s ease-out',
+            'scale': 'scale 0.3s ease-out',
+          },
+          keyframes: {
+            fadeIn: {
+              '0%': { opacity: '0' },
+              '100%': { opacity: '1' },
+            },
+            slideUp: {
+              '0%': { transform: 'translateY(20px)', opacity: '0' },
+              '100%': { transform: 'translateY(0)', opacity: '1' },
+            },
+            slideDown: {
+              '0%': { transform: 'translateY(-20px)', opacity: '0' },
+              '100%': { transform: 'translateY(0)', opacity: '1' },
+            },
+            scale: {
+              '0%': { transform: 'scale(0.95)', opacity: '0' },
+              '100%': { transform: 'scale(1)', opacity: '1' },
+            },
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Styles de base communs */
+    .glass-panel {
+      @apply backdrop-blur-md bg-white/10 dark:bg-black/20 rounded-xl border border-white/20 dark:border-gray-800/50;
+    }
+    
+    /* Transitions entre thèmes */
+    .dark body {
+      @apply bg-gray-900 text-white;
+      transition: background-color 0.5s ease, color 0.5s ease;
+    }
+    
+    body {
+      @apply bg-gray-50 text-gray-900;
+      transition: background-color 0.5s ease, color 0.5s ease;
+    }
+  </style>
+  <script src="/static/js/theme.js" defer></script>
+  {{block "head" .}}{{end}}
+</head>
+<body class="min-h-screen transition-colors duration-500 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+  
+  <!-- Barre de navigation -->
+  <nav class="glass-panel sticky top-0 z-50 px-4 py-3 shadow-lg">
+    <div class="container mx-auto flex justify-between items-center">
+      <a href="/home" class="flex items-center space-x-2">
+        <div class="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center text-white font-bold text-xl">
+          B<span class="text-xs">k</span>C
+        </div>
+        <span class="font-bold text-xl text-primary-600 dark:text-primary-400">CryptoChain Go</span>
+      </a>
+      
+      <div class="flex items-center space-x-2">
+        <a href="/blockchain" class="px-3 py-2 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/50 transition">🔗 Blockchain</a>
+        <a href="/transactions" class="px-3 py-2 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/50 transition">💸 Transactions</a>
+        <a href="/stats" class="px-3 py-2 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/50 transition">📊 Stats</a>
+        
+        {{if .IsAdmin}}
+        <a href="/admin" class="px-3 py-2 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/50 transition">👑 Admin</a>
+        {{end}}
+        
+        <button id="themeToggle" class="ml-2 w-10 h-10 rounded-full flex items-center justify-center bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition">
+          🌙
+        </button>
+        
+        <a href="/logout" class="ml-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition">
+          🚪
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Contenu principal -->
+  <main class="container mx-auto px-4 py-8">
+    {{block "content" .}}{{end}}
+  </main>
+
+  <!-- Pied de page -->
+  <footer class="text-center py-6 text-gray-500 dark:text-gray-400">
+    CryptoChain Go © 2025 - Sécurisé et transparent
+    <div class="mt-2 text-sm">
+      <a href="/security" class="hover:text-primary-600 dark:hover:text-primary-400 transition">Sécurité</a> •
+      <a href="/privacy" class="hover:text-primary-600 dark:hover:text-primary-400 transition">Confidentialité</a> •
+      <a href="/terms" class="hover:text-primary-600 dark:hover:text-primary-400 transition">Conditions d'utilisation</a>
+    </div>
+  </footer>
+
+  <!-- Notifications -->
+  <div id="notification-container" class="fixed bottom-4 right-4 z-50"></div>
+
+  <!-- Scripts communs -->
+  <script src="/static/js/main.js"></script>
+  {{block "scripts" .}}{{end}}
+</body>
+</html>

@@ -18,9 +18,12 @@ type TransactionRequest struct {
 
 // TransactionResponse représente la réponse après création d'une transaction
 type TransactionResponse struct {
-	Success       bool   `json:"success"`
-	Message       string `json:"message"`
-	TransactionID string `json:"transactionId,omitempty"`
+	Success       bool    `json:"success"`
+	Message       string  `json:"message"`
+	TransactionID string  `json:"transactionId,omitempty"`
+	SenderID      string  `json:"senderId,omitempty"`    // Pour l'animation côté client
+	RecipientID   string  `json:"recipientId,omitempty"` // Pour l'animation côté client
+	Amount        float64 `json:"amount,omitempty"`      // Pour l'animation côté client
 }
 
 // TransactionHandler gère les requêtes relatives aux transactions
@@ -70,7 +73,7 @@ func TransactionHandler(bc *blockchain.Blockchain) http.HandlerFunc {
 				return
 			}
 
-			// Création d'un portefeuille à partir de la clé privée (simplifiée pour l'exemple)
+			// Création d'un portefeuille à partir de la clé privée
 			wallet, err := blockchain.LoadWalletFromString(txReq.SenderPrivateKey)
 			if err != nil {
 				json.NewEncoder(w).Encode(TransactionResponse{
@@ -108,10 +111,18 @@ func TransactionHandler(bc *blockchain.Blockchain) http.HandlerFunc {
 				return
 			}
 
+			// Génération d'identifiants pour l'animation côté client
+			senderID := "wallet-" + txReq.SenderAddress[:8]
+			recipientID := "wallet-" + txReq.RecipientAddress[:8]
+
+			// Réponse avec les informations nécessaires pour l'animation côté client
 			json.NewEncoder(w).Encode(TransactionResponse{
 				Success:       true,
 				Message:       "Transaction créée et en attente de confirmation",
 				TransactionID: tx.ID,
+				SenderID:      senderID,
+				RecipientID:   recipientID,
+				Amount:        txReq.Amount,
 			})
 			return
 		} else if r.Method == "GET" {

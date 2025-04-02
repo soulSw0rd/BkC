@@ -17,16 +17,40 @@ type EventType string
 
 // Types d'événements d'audit prédéfinis
 const (
-	EventLogin             EventType = "LOGIN"
-	EventLogout            EventType = "LOGOUT"
-	EventLoginFailed       EventType = "LOGIN_FAILED"
-	EventBlockCreated      EventType = "BLOCK_CREATED"
-	EventBlockMined        EventType = "BLOCK_MINED"
-	EventTransactionAdded  EventType = "TRANSACTION_ADDED"
-	EventTransactionFailed EventType = "TRANSACTION_FAILED"
-	EventConfigChanged     EventType = "CONFIG_CHANGED"
-	EventUserCreated       EventType = "USER_CREATED"
-	EventSecurityAlert     EventType = "SECURITY_ALERT"
+	// Événements système
+	EventTypeServerStarted EventType = "SERVER_STARTED"
+	EventTypeServerStopped EventType = "SERVER_STOPPED"
+	EventTypeConfigChanged EventType = "CONFIG_CHANGED"
+
+	// Événements d'authentification
+	EventTypeLogin          EventType = "LOGIN"
+	EventTypeLogout         EventType = "LOGOUT"
+	EventTypeLoginFailed    EventType = "LOGIN_FAILED"
+	EventTypePasswordChange EventType = "PASSWORD_CHANGE"
+	EventTypeUserCreated    EventType = "USER_CREATED"
+
+	// Événements de blockchain
+	EventTypeBlockCreated EventType = "BLOCK_CREATED"
+	EventTypeBlockMined   EventType = "BLOCK_MINED"
+
+	// Événements de transactions
+	EventTypeTransactionAdded  EventType = "TRANSACTION_ADDED"
+	EventTypeTransactionFailed EventType = "TRANSACTION_FAILED"
+
+	// Événements de contrats
+	EventTypeContractCreated   EventType = "CONTRACT_CREATED"
+	EventTypeContractApproved  EventType = "CONTRACT_APPROVED"
+	EventTypeContractCancelled EventType = "CONTRACT_CANCELLED"
+	EventTypeContractExecuted  EventType = "CONTRACT_EXECUTED"
+	EventTypeContractListed    EventType = "CONTRACT_LISTED"
+	EventTypeContractViewed    EventType = "CONTRACT_VIEWED"
+	EventTypeContractAction    EventType = "CONTRACT_ACTION"
+
+	// Événements d'interface utilisateur
+	EventTypeUIAccess EventType = "UI_ACCESS"
+
+	// Événements de sécurité
+	EventTypeSecurityAlert EventType = "SECURITY_ALERT"
 )
 
 // RiskLevel représente un niveau de risque pour un événement
@@ -343,4 +367,99 @@ func GetAuditTrailValidity() (bool, error) {
 	}
 
 	return auditTrail.ValidateChain()
+}
+
+// GetEventTypeDescription retourne une description pour un type d'événement
+func GetEventTypeDescription(eventType EventType) string {
+	descriptions := map[EventType]string{
+		// Événements système
+		EventTypeServerStarted: "Démarrage du serveur",
+		EventTypeServerStopped: "Arrêt du serveur",
+		EventTypeConfigChanged: "Modification de la configuration",
+
+		// Événements d'authentification
+		EventTypeLogin:          "Connexion",
+		EventTypeLogout:         "Déconnexion",
+		EventTypeLoginFailed:    "Échec de connexion",
+		EventTypePasswordChange: "Changement de mot de passe",
+		EventTypeUserCreated:    "Création d'utilisateur",
+
+		// Événements de blockchain
+		EventTypeBlockCreated: "Création de bloc",
+		EventTypeBlockMined:   "Minage de bloc",
+
+		// Événements de transactions
+		EventTypeTransactionAdded:  "Ajout de transaction",
+		EventTypeTransactionFailed: "Échec de transaction",
+
+		// Événements de contrats
+		EventTypeContractCreated:   "Création de contrat",
+		EventTypeContractApproved:  "Approbation de contrat",
+		EventTypeContractCancelled: "Annulation de contrat",
+		EventTypeContractExecuted:  "Exécution de contrat",
+		EventTypeContractListed:    "Liste des contrats",
+		EventTypeContractViewed:    "Visualisation de contrat",
+		EventTypeContractAction:    "Action sur contrat",
+
+		// Événements d'interface utilisateur
+		EventTypeUIAccess: "Accès interface utilisateur",
+
+		// Événements de sécurité
+		EventTypeSecurityAlert: "Alerte de sécurité",
+	}
+
+	if desc, ok := descriptions[eventType]; ok {
+		return desc
+	}
+	return "Type d'événement inconnu"
+}
+
+// GetRiskLevelDescription retourne une description pour un niveau de risque
+func GetRiskLevelDescription(level RiskLevel) string {
+	descriptions := map[RiskLevel]string{
+		RiskLow:      "Faible - Information normale",
+		RiskMedium:   "Moyen - Attention requise",
+		RiskHigh:     "Élevé - Potentiellement dangereux",
+		RiskCritical: "Critique - Action immédiate nécessaire",
+	}
+
+	if desc, ok := descriptions[level]; ok {
+		return desc
+	}
+	return "Niveau de risque inconnu"
+}
+
+// ExportAuditTrail exporte la piste d'audit au format JSON pour une période donnée
+func ExportAuditTrail(startTime, endTime time.Time, filePath string) error {
+	auditMutex.RLock()
+	defer auditMutex.RUnlock()
+
+	if auditTrail == nil {
+		return fmt.Errorf("piste d'audit non initialisée")
+	}
+
+	auditTrail.mu.RLock()
+	defer auditTrail.mu.RUnlock()
+
+	// Filtrer les entrées par période
+	var filteredEntries []*AuditEntry
+	for _, entry := range auditTrail.Entries {
+		if (entry.Timestamp.Equal(startTime) || entry.Timestamp.After(startTime)) &&
+			(entry.Timestamp.Equal(endTime) || entry.Timestamp.Before(endTime)) {
+			filteredEntries = append(filteredEntries, entry)
+		}
+	}
+
+	// Sérialiser
+	data, err := json.MarshalIndent(filteredEntries, "", "  ")
+	if err != nil {
+		return fmt.Errorf("erreur lors de la sérialisation des entrées d'audit: %w", err)
+	}
+
+	// Écrire dans le fichier
+	if err := ioutil.WriteFile(filePath, data, 0644); err != nil {
+		return fmt.Errorf("erreur lors de l'écriture du fichier d'export: %w", err)
+	}
+
+	return nil
 }

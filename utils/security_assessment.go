@@ -518,7 +518,7 @@ func RegisterGlobalThreat(threatType string) {
 
 	// Journaliser l'événement
 	LogAuditEvent(
-		EventSecurityAlert,
+		EventTypeSecurityAlert,
 		"system",
 		"0.0.0.0",
 		fmt.Sprintf("Menace globale détectée: %s", threatType),
@@ -551,21 +551,6 @@ func GetSecurityFactorDescription(factor RiskFactor) string {
 		return desc
 	}
 	return "Facteur de risque inconnu"
-}
-
-// GetRiskLevelDescription retourne une description pour un niveau de risque
-func GetRiskLevelDescription(level RiskLevel) string {
-	descriptions := map[RiskLevel]string{
-		RiskLow:      "Faible - Aucune action requise",
-		RiskMedium:   "Moyen - Surveillance recommandée",
-		RiskHigh:     "Élevé - Attention requise",
-		RiskCritical: "Critique - Action immédiate nécessaire",
-	}
-
-	if desc, ok := descriptions[level]; ok {
-		return desc
-	}
-	return "Niveau de risque inconnu"
 }
 
 // IsIPUnusual version globale pour l'appel externe

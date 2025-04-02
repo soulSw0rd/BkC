@@ -4,29 +4,29 @@
 ![Go Version](https://img.shields.io/badge/Go-1.21+-00ADD8.svg)
 ![License](https://img.shields.io/badge/license-GPL%20v3-green.svg)
 
-CryptoChain Go est une implémentation moderne de blockchain en Go, combinée avec une interface utilisateur web élégante permettant de visualiser et interagir avec la blockchain. Cette application offre une plateforme complète pour créer des blocs, effectuer des transactions et suivre les activités dans un environnement sécurisé.
+CryptoChain Go is a modern blockchain implementation in Go, combined with an elegant web user interface for visualizing and interacting with the blockchain. This application offers a complete platform for creating blocks, making transactions, and tracking activities in a secure environment.
 
 ![CryptoChain Screenshot](https://via.placeholder.com/800x400?text=CryptoChain+Go+Screenshot)
 
-## 🚀 Fonctionnalités
+## 🚀 Features
 
-- **Blockchain complète** avec preuve de travail (PoW) et ajustement automatique de difficulté
-- **Système de transactions** permettant d'échanger des tokens entre utilisateurs
-- **Explorateur de blockchain** pour visualiser tous les blocs et transactions
-- **Dashboard interactif** avec statistiques en temps réel
-- **Persistance des données** avec sauvegarde et chargement automatique de la chaîne
-- **Interface utilisateur moderne** avec design responsive et thèmes clair/sombre
-- **Authentification sécurisée** utilisant Argon2 pour le hachage des mots de passe
-- **API RESTful** pour l'intégration avec d'autres applications
+- **Complete blockchain** with proof of work (PoW) and automatic difficulty adjustment
+- **Transaction system** allowing token exchange between users
+- **Blockchain explorer** to visualize all blocks and transactions
+- **Interactive dashboard** with real-time statistics
+- **Data persistence** with automatic blockchain saving and loading
+- **Modern user interface** with responsive design and light/dark themes
+- **Secure authentication** using Argon2 for password hashing
+- **RESTful API** for integration with other applications
 
-## 📋 Prérequis
+## 📋 Prerequisites
 
-- [Go](https://golang.org/dl/) version 1.21 ou supérieure
-- Navigateur web moderne (Chrome, Firefox, Edge, Safari)
-- Connexion Internet pour charger les bibliothèques CSS/JS via CDN
-- Minimum 100 Mo d'espace disque libre pour la blockchain et les logs
+- [Go](https://golang.org/dl/) version 1.21 or higher
+- Modern web browser (Chrome, Firefox, Edge, Safari)
+- Internet connection to load CSS/JS libraries via CDN
+- Minimum 100 MB of free disk space for blockchain and logs
 
-### Dépendances Go requises
+### Required Go dependencies
 
 ```
 github.com/gorilla/mux v1.8.1
@@ -36,92 +36,92 @@ golang.org/x/crypto v0.36.0+
 
 ## 🔧 Installation
 
-### Option 1 : Installation depuis le code source
+### Option 1: Installation from source code
 
-1. Clonez le dépôt:
+1. Clone the repository:
 
 ```bash
 git clone https://github.com/soulSw0rd/BkC.git
 cd BkC
 ```
 
-2. Installez les dépendances:
+2. Install dependencies:
 
 ```bash
 go mod tidy
 ```
 
-3. Compilez l'application:
+3. Compile the application:
 
 ```bash
 go build
 ```
 
-### Option 2 : Installation avec Go install
+### Option 2: Installation with Go install
 
 ```bash
 go install github.com/soulSw0rd/BkC@latest
 ```
 
-## 🏃‍♂️ Démarrage
+## 🏃‍♂️ Getting Started
 
-1. Créez les dossiers nécessaires:
+1. Create necessary directories:
 
 ```bash
 mkdir -p data logs
 ```
 
-2. Lancez l'application:
+2. Launch the application:
 
 ```bash
 ./BkC
 ```
 
-Ou directement sans compilation préalable:
+Or directly without prior compilation:
 
 ```bash
 go run main.go
 ```
 
-3. Accédez à l'application dans votre navigateur:
+3. Access the application in your browser:
 
 ```
 http://localhost:8080
 ```
 
-4. Connectez-vous avec les identifiants par défaut:
-   - Nom d'utilisateur: `admin`
-   - Mot de passe: `admin`
+4. Log in with default credentials:
+   - Username: `admin`
+   - Password: `admin`
 
-## 📊 Utilisation
+## 📊 Usage
 
-### Exploration de la blockchain
+### Exploring the blockchain
 
-- Accédez à la page **Blockchain** pour voir tous les blocs minés
-- Consultez les détails de chaque bloc, y compris ses transactions et hash
-- Utilisez la barre de recherche pour trouver des blocs ou transactions spécifiques
+- Go to the **Blockchain** page to see all mined blocks
+- View details of each block, including its transactions and hash
+- Use the search bar to find specific blocks or transactions
 
-### Gestion des transactions
+### Managing transactions
 
-- Créez de nouvelles transactions en spécifiant un destinataire et un montant
-- Visualisez l'historique de vos transactions, tant confirmées qu'en attente
-- Recevez des notifications lorsque vos transactions sont confirmées
+- Create new transactions by specifying a recipient and amount
+- View your transaction history, both confirmed and pending
+- Receive notifications when your transactions are confirmed
 
-### Minage
+### Mining
 
-- Minez de nouveaux blocs et recevez des récompenses en tokens
-- Observez l'ajustement automatique de la difficulté en fonction du temps de minage
-- Suivez vos récompenses de minage dans votre historique de transactions
+- Mine new blocks and receive token rewards
+- Observe automatic difficulty adjustment based on mining time
+- Track your mining rewards in your transaction history
 
-### Tableau de bord
+### Dashboard
 
-- Consultez les statistiques en temps réel de la blockchain
-- Visualisez les graphiques d'activité, de transactions et de difficulté
-- Surveillez votre solde et vos transactions récentes
+- View real-time blockchain statistics
+- Visualize activity, transaction, and difficulty graphs
+- Monitor your balance and recent transactions
 
-## 🛠️ Configuration avancée
+## 🛠️ Advanced Configuration
 
-Un fichier de configuration `config.json` peut être créé à la racine du projet pour personnaliser divers paramètres:
+A `config.json` configuration file can be created at the project root to customize various parameters:
 
 ```json
 {
@@ -137,47 +137,47 @@ Un fichier de configuration `config.json` peut être créé à la racine du proj
 
 ## 🔄 API
 
-L'application expose une API RESTful pour l'intégration avec d'autres systèmes:
+The application exposes a RESTful API for integration with other systems:
 
-- `GET /api/blockchain` - Récupère la blockchain complète
-- `GET /api/stats` - Obtient les statistiques de la blockchain
-- `POST /api/mining` - Mine un nouveau bloc
-- `GET /api/wallet` - Récupère les informations de portefeuille
-- `POST /api/transactions` - Crée une nouvelle transaction
+- `GET /api/blockchain` - Retrieves the complete blockchain
+- `GET /api/stats` - Gets blockchain statistics
+- `POST /api/mining` - Mines a new block
+- `GET /api/wallet` - Retrieves wallet information
+- `POST /api/transactions` - Creates a new transaction
 
-## 👩‍💻 Développement
+## 👩‍💻 Development
 
-Pour les développeurs souhaitant contribuer au projet:
+For developers wishing to contribute to the project:
 
-1. Fork le dépôt
-2. Créez une branche pour votre fonctionnalité (`git checkout -b feature/amazing-feature`)
-3. Commit vos changements (`git commit -m 'Add some amazing feature'`)
-4. Push vers la branche (`git push origin feature/amazing-feature`)
-5. Ouvrez une Pull Request
+1. Fork the repository
+2. Create a branch for your feature (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-## 🔍 Dépannage
+## 🔍 Troubleshooting
 
-### Problèmes courants
+### Common issues
 
-- **Erreur de port déjà utilisé**: Modifiez le port dans le fichier `config.json`
-- **Erreurs de dépendances**: Exécutez `go mod tidy` pour mettre à jour les dépendances
-- **Problèmes de performance**: Ajustez la difficulté de minage dans `config.json`
+- **Port already in use error**: Modify the port in the `config.json` file
+- **Dependency errors**: Run `go mod tidy` to update dependencies
+- **Performance issues**: Adjust mining difficulty in `config.json`
 
-### Journaux
+### Logs
 
-Les journaux sont stockés dans le répertoire `logs` et suivent le format `server_YYYY-MM-DD.log`.
+Logs are stored in the `logs` directory and follow the format `server_YYYY-MM-DD.log`.
 
-## 📜 Licence
+## 📜 License
 
-Ce projet est sous licence [GNU General Public License v3.0](LICENSE) - voir le fichier LICENSE pour plus de détails.
+This project is licensed under the [GNU General Public License v3.0](LICENSE) - see the LICENSE file for details.
 
-## 🙏 Remerciements
+## 🙏 Acknowledgments
 
-- L'équipe Go pour leur langage excellent
-- La communauté blockchain pour leur inspiration et documentation
-- Tous les contributeurs qui ont aidé à améliorer ce projet
+- The Go team for their excellent language
+- The blockchain community for their inspiration and documentation
+- All contributors who helped improve this project
 
 ---
 
-Hébergé sur le repository de [SoulSw0rd](https://github.com/soulSw0rd)
-Dévellopé par l'équipe de BKC
+Hosted on [SoulSw0rd](https://github.com/soulSw0rd)'s repository
+Developed by the BKC team

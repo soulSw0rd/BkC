@@ -11,16 +11,11 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
-	"os/signal"
 	"path/filepath"
 	"runtime"
 	"strconv"
-	"syscall"
 	"time"
 )
-
-// Version de l'application
-const appVersion = "1.2.0"
 
 // openBrowser ouvre le navigateur par défaut avec l'URL spécifiée.
 func openBrowser(url string) {
@@ -52,8 +47,6 @@ func initDirectories() error {
 		"logs",
 		"wallets",
 		"data",
-		"data/contracts",
-		"data/metrics",
 		"static/js",
 		"templates/layouts",
 		"network",
@@ -92,26 +85,6 @@ func setupAuditAndSecurity() {
 	if err := utils.InitSecurityRiskAssessment(securityPath); err != nil {
 		log.Printf("⚠️ Erreur lors de l'initialisation du système d'évaluation des risques: %v", err)
 	}
-
-	// Initialiser le moniteur de performance
-	metricsPath := filepath.Join(utils.Config.DataDir, "metrics", "performance.json")
-	utils.InitPerformanceMonitor(metricsPath)
-}
-
-// setupBlockchainProcessor configure le processeur de blockchain
-func setupBlockchainProcessor(bc *blockchain.Blockchain) {
-	// Démarrer un traitement périodique des contrats en attente
-	go func() {
-		ticker := time.NewTicker(30 * time.Second)
-		defer ticker.Stop()
-
-		for {
-			select {
-			case <-ticker.C:
-				bc.ProcessPendingContracts()
-			}
-		}
-	}()
 }
 
 // setupRoutes configure toutes les routes de l'application
@@ -220,19 +193,14 @@ func setupRoutes(router *http.ServeMux, bc *blockchain.Blockchain) {
 		tmpl.Execute(w, data)
 	})
 
-	// Route pour l'API REST
-	router.HandleFunc("/api/", handlers.APIHandler(bc))
+	// API endpoints
+	router.HandleFunc("/api/blockchain", handlers.BlockchainHandler(bc))
+	router.HandleFunc("/api/transactions", handlers.AddTransactionToNetworkHandler(bc))
+	router.HandleFunc("/api/mine", handlers.AddBlockToNetworkHandler(bc))
+	router.HandleFunc("/api/dashboard-data", handlers.DashboardHandler(bc))
+	router.HandleFunc("/api/wallet", handlers.WalletHandler("wallets"))
 	router.HandleFunc("/api/contracts", handlers.ContractsHandler(bc))
 	router.HandleFunc("/api/contracts/", handlers.ContractsHandler(bc))
-}
-
-// setupGracefulShutdown configure l'arrêt propre de l'application
-func setupGracefulShutdown() chan os.Signal {
-	// Canal pour recevoir les signaux d'arrêt
-	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
-
-	return stop
 }
 
 func main() {
@@ -258,9 +226,6 @@ func main() {
 	// Initialisation de la blockchain
 	bc := blockchain.NewBlockchain()
 
-	// Configurer le processeur de blockchain
-	setupBlockchainProcessor(bc)
-
 	// Initialisation des utilisateurs par défaut
 	handlers.InitSampleUsers()
 
@@ -273,9 +238,6 @@ func main() {
 	// Initialiser le router et configurer les routes
 	router := http.NewServeMux()
 	setupRoutes(router, bc)
-
-	// Configurer l'arrêt propre
-	stopChan := setupGracefulShutdown()
 
 	// Appliquer les middlewares
 	var handler http.Handler = router
@@ -300,7 +262,6 @@ func main() {
 			"startup_time_ms": time.Since(startTime).Milliseconds(),
 			"port":            port,
 			"validator":       isValidator,
-			"version":         appVersion,
 		},
 	)
 
@@ -321,35 +282,9 @@ func main() {
 	fmt.Println("🌐 Réseau P2P activé - Simulant une blockchain distribuée")
 	fmt.Println("📜 Système de contrats intelligents basique opérationnel")
 	fmt.Printf("⏱️ Temps de démarrage: %v\n", time.Since(startTime))
-	fmt.Printf("📊 Version %s | © 2025 CryptoChain Go\n", appVersion)
 
-	// Démarrer le serveur dans une goroutine séparée
-	go func() {
-		if err := http.ListenAndServe(fmt.Sprintf(":%d", port), handler); err != nil {
-			log.Fatalf("❌ Erreur lors du démarrage du serveur : %v", err)
-		}
-	}()
-
-	// Attendre le signal d'arrêt
-	<-stopChan
-
-	// Effectuer les opérations de nettoyage
-	fmt.Println("\n⏹️ Arrêt du serveur en cours...")
-
-	// Journaliser l'arrêt du serveur
-	utils.LogAuditEvent(
-		utils.EventTypeServerStopped,
-		"system",
-		"localhost",
-		"Arrêt propre du serveur",
-		utils.RiskLow,
-		map[string]interface{}{
-			"uptime_seconds": time.Since(startTime).Seconds(),
-		},
-	)
-
-	// Donner du temps pour les écritures en cours
-	time.Sleep(500 * time.Millisecond)
-
-	fmt.Println("✅ Serveur arrêté avec succès.")
+	// Démarrer le serveur
+	if err := http.ListenAndServe(fmt.Sprintf(":%d", port), handler); err != nil {
+		log.Fatalf("❌ Erreur lors du démarrage du serveur : %v", err)
+	}
 }

@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-// Block représente un bloc dans la blockchain
+// Block represents a block in the blockchain
 type Block struct {
 	Index        int           `json:"index"`
 	Timestamp    time.Time     `json:"timestamp"`
@@ -20,7 +20,7 @@ type Block struct {
 	Miner        string        `json:"miner"`
 }
 
-// ComputeHash calcule le hash d'un bloc
+// ComputeHash calculates the hash of a block
 func (b *Block) ComputeHash() string {
 	record := fmt.Sprintf("%d%s%s%s%d%d",
 		b.Index,
@@ -34,32 +34,32 @@ func (b *Block) ComputeHash() string {
 	return hex.EncodeToString(hash[:])
 }
 
-// CalculateMerkleRoot calcule la racine de l'arbre de Merkle des transactions
+// CalculateMerkleRoot calculates the Merkle tree root of transactions
 func (b *Block) CalculateMerkleRoot() string {
 	var txHashes [][]byte
 
-	// Si aucune transaction, utilisez une valeur par défaut
+	// If no transactions, use a default value
 	if len(b.Transactions) == 0 {
 		hash := sha256.Sum256([]byte("empty_block"))
 		return hex.EncodeToString(hash[:])
 	}
 
-	// Collecte des hashes de transactions
+	// Collect transaction hashes
 	for _, tx := range b.Transactions {
 		hashBytes, _ := hex.DecodeString(tx.ID)
 		txHashes = append(txHashes, hashBytes)
 	}
 
-	// Tant qu'il reste plus d'un hash
+	// While there is more than one hash
 	for len(txHashes) > 1 {
 		if len(txHashes)%2 != 0 {
-			// Dupliquer le dernier élément si nombre impair
+			// Duplicate the last element if odd number
 			txHashes = append(txHashes, txHashes[len(txHashes)-1])
 		}
 
 		var newLevel [][]byte
 
-		// Combiner les hashes par paires
+		// Combine hashes in pairs
 		for i := 0; i < len(txHashes); i += 2 {
 			concat := append(txHashes[i], txHashes[i+1]...)
 			hash := sha256.Sum256(concat)
@@ -69,11 +69,11 @@ func (b *Block) CalculateMerkleRoot() string {
 		txHashes = newLevel
 	}
 
-	// Le dernier hash est la racine de Merkle
+	// The last hash is the Merkle root
 	return hex.EncodeToString(txHashes[0])
 }
 
-// AddTransaction ajoute une transaction au bloc et recalcule la racine de Merkle
+// AddTransaction adds a transaction to the block and recalculates the Merkle root
 func (b *Block) AddTransaction(tx Transaction) {
 	b.Transactions = append(b.Transactions, tx)
 	b.MerkleRoot = b.CalculateMerkleRoot()
