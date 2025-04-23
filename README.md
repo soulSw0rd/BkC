@@ -180,4 +180,4 @@ This project is licensed under the [GNU General Public License v3.0](LICENSE) - 
 ---
 
 Hosted on [SoulSw0rd](https://github.com/soulSw0rd)'s repository
-Developed by the BKC team
+Developed by the BKC team 
