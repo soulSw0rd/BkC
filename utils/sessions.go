@@ -8,5 +8,4 @@ type UserSession struct {
 	IP        string
 	StartTime time.Time
 	LastSeen  time.Time
-	IsAdmin   bool
 }

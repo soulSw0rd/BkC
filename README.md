@@ -1,183 +1,90 @@
-# BkC - CryptoChain Go
+# CryptoChain Go
 
-![Version](https://img.shields.io/badge/version-1.2.0-blue.svg)
-![Go Version](https://img.shields.io/badge/Go-1.21+-00ADD8.svg)
-![License](https://img.shields.io/badge/license-GPL%20v3-green.svg)
+CryptoChain Go est une implémentation simple de blockchain en Go, combinée avec un serveur HTTP pour afficher des informations sur la blockchain et ses statistiques d'utilisation. L'application permet de créer des blocs, de les ajouter à la chaîne et de suivre les sessions des utilisateurs.
 
-CryptoChain Go is a modern blockchain implementation in Go, combined with an elegant web user interface for visualizing and interacting with the blockchain. This application offers a complete platform for creating blocks, making transactions, and tracking activities in a secure environment.
+## Fonctionnalités
 
-![CryptoChain Screenshot](https://via.placeholder.com/800x400?text=CryptoChain+Go+Screenshot)
+- **Blockchain** : Crée et gère une blockchain avec un mécanisme de preuve de travail (Proof of Work).
+- **Sessions utilisateur** : Suivi des sessions avec les visiteurs et génération de nouveaux blocs à intervalles réguliers.
+- **Statistiques** : Affiche des statistiques sur le nombre de visiteurs uniques, les sessions actives, et les informations sur le dernier bloc.
+- **Serveur HTTP** : Fournit une interface web simple pour interagir avec la blockchain et consulter les statistiques.
 
-## 🚀 Features
+## Installation
 
-- **Complete blockchain** with proof of work (PoW) and automatic difficulty adjustment
-- **Transaction system** allowing token exchange between users
-- **Blockchain explorer** to visualize all blocks and transactions
-- **Interactive dashboard** with real-time statistics
-- **Data persistence** with automatic blockchain saving and loading
-- **Modern user interface** with responsive design and light/dark themes
-- **Secure authentication** using Argon2 for password hashing
-- **RESTful API** for integration with other applications
+### Prérequis
 
-## 📋 Prerequisites
+- [Go](https://golang.org/dl/) (version 1.16 ou supérieure)
+- Un éditeur de texte ou un IDE compatible avec Go
 
-- [Go](https://golang.org/dl/) version 1.21 or higher
-- Modern web browser (Chrome, Firefox, Edge, Safari)
-- Internet connection to load CSS/JS libraries via CDN
-- Minimum 100 MB of free disk space for blockchain and logs
+### Étapes
 
-### Required Go dependencies
+1. Clonez ce dépôt :
 
-```
-github.com/gorilla/mux v1.8.1
-github.com/gorilla/csrf v1.7.2
-golang.org/x/crypto v0.36.0+
-```
+   ```bash
+   git clone https://github.com/votre-utilisateur/cryptochain-go.git
+   cd cryptochain-go
+   ```
 
-## 🔧 Installation
+2. Compilez et lancez le serveur Go :
 
-### Option 1: Installation from source code
+   ```bash
+   go run main.go
+   ```
 
-1. Clone the repository:
+3. Le serveur sera accessible à l'adresse suivante : `http://localhost:8080`.
 
-```bash
-git clone https://github.com/soulSw0rd/BkC.git
-cd BkC
-```
+## Fonctionnement
 
-2. Install dependencies:
+### Blockchain
 
-```bash
-go mod tidy
-```
+L'application implémente une blockchain simple avec un mécanisme de preuve de travail (PoW). Chaque bloc contient :
+- **Index** : L'index du bloc dans la chaîne.
+- **Timestamp** : L'heure de création du bloc.
+- **Data** : Les données du bloc (dans cet exemple, des informations sur la session de l'utilisateur).
+- **PrevHash** : Le hash du bloc précédent.
+- **Hash** : Le hash du bloc actuel.
+- **Nonce** : Un nombre utilisé pour la preuve de travail.
 
-3. Compile the application:
+### Sessions Utilisateur
 
-```bash
-go build
-```
+Le serveur suit les sessions des utilisateurs en fonction de leur adresse IP. Si un utilisateur reste actif pendant une durée suffisante (5 minutes dans ce cas), un nouveau bloc est ajouté à la blockchain avec les informations sur cette session.
 
-### Option 2: Installation with Go install
+### Statistiques
 
-```bash
-go install github.com/soulSw0rd/BkC@latest
-```
+Le serveur affiche des statistiques sur le nombre de visiteurs uniques, le nombre de sessions actives, et les informations sur le dernier bloc de la blockchain.
 
-## 🏃‍♂️ Getting Started
+### Routes du serveur
 
-1. Create necessary directories:
+- **`/`** : Page d'accueil avec des liens vers la blockchain et les statistiques.
+- **`/blockchain`** : Affiche la blockchain sous forme de JSON ou permet d'ajouter un nouveau bloc via une requête POST.
+- **`/stats`** : Affiche les statistiques, y compris le nombre de visiteurs uniques et les détails du dernier bloc.
 
-```bash
-mkdir -p data logs
-```
+## Configuration
 
-2. Launch the application:
+- **Difficulté de la preuve de travail** : La difficulté est définie à `4` dans le code (le nombre de zéros à ajouter au début du hash pour qu'il soit valide). Vous pouvez modifier cette valeur dans le code pour ajuster la difficulté de la preuve de travail.
 
-```bash
-./BkC
-```
+- **Durée de session** : Les sessions sont vérifiées toutes les 5 minutes. Si un utilisateur reste inactif plus longtemps, un nouveau bloc est ajouté à la blockchain.
 
-Or directly without prior compilation:
+- **Fichier de log** : Les requêtes HTTP sont enregistrées dans un fichier `server.log`.
 
-```bash
-go run main.go
-```
+## Structure du code
 
-3. Access the application in your browser:
+- **main.go** : Le fichier principal contenant la logique de la blockchain, du serveur HTTP et des sessions utilisateur.
+- **Block** : La structure représentant un bloc dans la blockchain.
+- **Blockchain** : La structure représentant la chaîne de blocs.
+- **UserSession** : La structure représentant la session d'un utilisateur.
 
-```
-http://localhost:8080
-```
+## Tests
 
-4. Log in with default credentials:
-   - Username: `admin`
-   - Password: `admin`
+Les tests manuels peuvent être effectués en interagissant avec l'interface web à l'adresse `http://localhost:8080`. Pour tester les fonctionnalités de la blockchain, vous pouvez :
+- Ajouter un bloc via l'interface web en envoyant des données.
+- Consulter la blockchain en accédant à `/blockchain`.
+- Vérifier les statistiques via `/stats`.
 
-## 📊 Usage
+## Licence
 
-### Exploring the blockchain
-
-- Go to the **Blockchain** page to see all mined blocks
-- View details of each block, including its transactions and hash
-- Use the search bar to find specific blocks or transactions
-
-### Managing transactions
-
-- Create new transactions by specifying a recipient and amount
-- View your transaction history, both confirmed and pending
-- Receive notifications when your transactions are confirmed
-
-### Mining
-
-- Mine new blocks and receive token rewards
-- Observe automatic difficulty adjustment based on mining time
-- Track your mining rewards in your transaction history
-
-### Dashboard
-
-- View real-time blockchain statistics
-- Visualize activity, transaction, and difficulty graphs
-- Monitor your balance and recent transactions
-
-## 🛠️ Advanced Configuration
-
-A `config.json` configuration file can be created at the project root to customize various parameters:
-
-```json
-{
-  "server_port": 8080,
-  "logs_dir": "logs",
-  "data_dir": "data",
-  "blockchain_file": "data/blockchain.json",
-  "block_difficulty": 4,
-  "mining_reward": 10.0,
-  "dev_mode": false
-}
-```
-
-## 🔄 API
-
-The application exposes a RESTful API for integration with other systems:
-
-- `GET /api/blockchain` - Retrieves the complete blockchain
-- `GET /api/stats` - Gets blockchain statistics
-- `POST /api/mining` - Mines a new block
-- `GET /api/wallet` - Retrieves wallet information
-- `POST /api/transactions` - Creates a new transaction
-
-## 👩‍💻 Development
-
-For developers wishing to contribute to the project:
-
-1. Fork the repository
-2. Create a branch for your feature (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## 🔍 Troubleshooting
-
-### Common issues
-
-- **Port already in use error**: Modify the port in the `config.json` file
-- **Dependency errors**: Run `go mod tidy` to update dependencies
-- **Performance issues**: Adjust mining difficulty in `config.json`
-
-### Logs
-
-Logs are stored in the `logs` directory and follow the format `server_YYYY-MM-DD.log`.
-
-## 📜 License
-
-This project is licensed under the [GNU General Public License v3.0](LICENSE) - see the LICENSE file for details.
-
-## 🙏 Acknowledgments
-
-- The Go team for their excellent language
-- The blockchain community for their inspiration and documentation
-- All contributors who helped improve this project
+Ce projet est sous licence MIT. Consultez le fichier LICENSE pour plus de détails.
 
 ---
 
-Hosted on [SoulSw0rd](https://github.com/soulSw0rd)'s repository
-Developed by the BKC team
+Cela résume bien les fonctionnalités et fournit des instructions claires pour démarrer avec le projet. Si tu as des ajouts ou des ajustements, n’hésite pas à me le dire !
