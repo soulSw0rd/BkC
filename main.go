@@ -46,6 +46,9 @@ func main() {
 	// Initialisation de la blockchain.
 	bc := blockchain.NewBlockchain()
 
+	// Initialiser la référence globale
+	handlers.InitGlobalBC(bc)
+
 	// Route par défaut : affiche la page d'accueil (acceuil.html)
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		tmpl, err := template.ParseFiles("templates/acceuil.html")
@@ -56,21 +59,40 @@ func main() {
 		tmpl.Execute(w, nil)
 	})
 
-	// Routes publiques.
+	// Routes pour l'authentification
 	http.HandleFunc("/login", handlers.LoginHandler)
 	http.HandleFunc("/login-submit", handlers.LoginSubmitHandler)
+	http.HandleFunc("/signin", handlers.SigninHandler)
+	http.HandleFunc("/signin-submit", handlers.SigninSubmitHandler)
 	http.HandleFunc("/logout", handlers.LogoutHandler)
 
-	// Route d'accueil après connexion.
+	// Route d'accueil après connexion
 	http.HandleFunc("/home", handlers.HomeHandler)
 
-	// Route pour la blockchain.
+	// Route pour la messagerie
+	http.HandleFunc("/messages", handlers.MessagesHandler(bc))
+	http.HandleFunc("/api/messages", handlers.APIMessagesHandler(bc))
+
+	// Route pour le minage de blocs
+	http.HandleFunc("/mine-block", handlers.MineBlockHandler(bc))
+
+	// Route WebSocket pour les mises à jour en temps réel
+	http.HandleFunc("/ws", handlers.WebSocketHandler(bc))
+
+	// Route pour la blockchain
 	http.HandleFunc("/blockchain", handlers.BlockchainHandler(bc))
 
-	// Route pour les statistiques.
+	// Route pour les statistiques des mineurs
+	http.HandleFunc("/miners-stats", handlers.MinersStatsHandler(bc))
+
+	// Route pour les statistiques
 	http.HandleFunc("/stats", handlers.StatsHandler(bc))
 
-	// Ouvre le navigateur automatiquement.
+	// Servir les fichiers statiques
+	fs := http.FileServer(http.Dir("static"))
+	http.Handle("/static/", http.StripPrefix("/static/", fs))
+
+	// Ouvre le navigateur automatiquement
 	go func() {
 		log.Println("🌍 Ouverture du navigateur...")
 		openBrowser("http://localhost:8080")

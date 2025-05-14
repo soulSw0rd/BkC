@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blockchain | CryptoChain Go</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/static/js/blockchain.js" defer></script>
+  <style>
+    .block-card {
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .block-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.5);
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-r from-gray-900 to-black text-white min-h-screen">
+  <!-- Barre de navigation -->
+  <nav class="flex justify-between items-center p-4 bg-gray-800 shadow-lg">
+    <div class="flex items-center">
+      <div class="text-2xl font-bold text-blue-400">CryptoChain Go</div>
+      <div class="ml-6 flex space-x-4">
+        <a href="/home" class="text-gray-300 hover:text-white transition">Accueil</a>
+        <a href="/messages" class="text-gray-300 hover:text-white transition">Messages</a>
+        <a href="/blockchain" class="text-blue-400 border-b-2 border-blue-400">Blockchain</a>
+        <a href="/stats" class="text-gray-300 hover:text-white transition">Stats</a>
+      </div>
+    </div>
+    <div>
+      {{if .Username}}
+      <span class="mr-4">Bonjour, <span class="font-bold">{{.Username}}</span></span>
+      <a href="/logout" class="px-4 py-2 bg-red-500 rounded hover:bg-red-600 transition">Déconnexion</a>
+      {{else}}
+      <a href="/login" class="mr-4 px-4 py-2 bg-purple-500 rounded hover:bg-purple-600 transition">Se connecter</a>
+      <a href="/signin" class="px-4 py-2 bg-green-500 rounded hover:bg-green-600 transition">Créer un compte</a>
+      {{end}}
+    </div>
+  </nav>
+
+  <!-- Contenu principal -->
+  <div class="container mx-auto p-4">
+    <h1 class="text-4xl font-bold text-center my-8 text-blue-400">Explorer la Blockchain</h1>
+    
+    <!-- Statistiques de la blockchain -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div class="bg-gray-800 rounded-lg p-6 shadow-lg">
+        <h2 class="text-xl font-bold mb-2 text-blue-400">Blocs</h2>
+        <p class="text-3xl font-bold">{{len .Blocks}}</p>
+      </div>
+      <div class="bg-gray-800 rounded-lg p-6 shadow-lg">
+        <h2 class="text-xl font-bold mb-2 text-blue-400">Dernier Hash</h2>
+        <p class="text-sm font-mono truncate">{{if .LastBlock}}{{.LastBlock.Hash}}{{else}}Aucun bloc{{end}}</p>
+      </div>
+      <div class="bg-gray-800 rounded-lg p-6 shadow-lg">
+        <h2 class="text-xl font-bold mb-2 text-blue-400">Difficulté</h2>
+        <p class="text-3xl font-bold">4</p>
+      </div>
+    </div>
+
+    <!-- Formulaire d'ajout de bloc -->
+    <div class="bg-gray-800 rounded-lg p-6 shadow-lg mb-8">
+      <h2 class="text-xl font-bold mb-4 text-blue-400">Contribuer à la blockchain</h2>
+      <p class="text-gray-300 mb-4">Chaque hash que vous générez sera ajouté à la blockchain et visible par tous les utilisateurs. Partagez votre contribution!</p>
+      <form id="add-block-form" class="space-y-4">
+        <div>
+          <label for="block-data" class="block text-sm font-medium text-gray-300 mb-1">Message à inclure dans votre bloc</label>
+          <textarea id="block-data" name="data" rows="3" class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="Entrez un message pour accompagner votre hash..."></textarea>
+        </div>
+        <button type="submit" class="px-4 py-2 bg-blue-500 rounded hover:bg-blue-600 transition">
+          Générer un hash et l'ajouter à la blockchain
+        </button>
+      </form>
+      <div id="mining-status" class="mt-4 hidden">
+        <div class="flex items-center text-yellow-400">
+          <div class="animate-spin mr-2">⚙️</div>
+          <span>Génération du hash en cours...</span>
+        </div>
+      </div>
+      <div id="success-message" class="mt-4 text-green-400 hidden">
+        Votre hash a été ajouté à la blockchain avec succès!
+      </div>
+    </div>
+    
+    <!-- Section des hashs récents -->
+    <div class="bg-gray-800 rounded-lg p-6 shadow-lg mb-8">
+      <h2 class="text-xl font-bold mb-4 text-blue-400">Hashs récemment ajoutés</h2>
+      <div id="recent-hashes" class="space-y-2">
+        <div class="animate-pulse flex space-x-4">
+          <div class="flex-1 space-y-2 py-1">
+            <div class="h-4 bg-gray-700 rounded w-3/4"></div>
+            <div class="h-4 bg-gray-700 rounded"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Classement des mineurs -->
+    <div class="bg-gray-800 rounded-lg p-6 shadow-lg mb-8">
+      <h2 class="text-xl font-bold mb-4 text-blue-400">Classement des mineurs</h2>
+      <div class="overflow-x-auto">
+        <table class="min-w-full bg-gray-700 rounded">
+          <thead>
+            <tr>
+              <th class="py-2 px-4 text-left text-sm font-semibold border-b border-gray-600">Position</th>
+              <th class="py-2 px-4 text-left text-sm font-semibold border-b border-gray-600">Mineur</th>
+              <th class="py-2 px-4 text-left text-sm font-semibold border-b border-gray-600">Blocs minés</th>
+              <th class="py-2 px-4 text-left text-sm font-semibold border-b border-gray-600">Dernier minage</th>
+            </tr>
+          </thead>
+          <tbody id="miners-leaderboard">
+            <tr>
+              <td class="py-2 px-4 border-b border-gray-600 animate-pulse">
+                <div class="h-4 bg-gray-600 rounded w-4"></div>
+              </td>
+              <td class="py-2 px-4 border-b border-gray-600 animate-pulse">
+                <div class="h-4 bg-gray-600 rounded w-24"></div>
+              </td>
+              <td class="py-2 px-4 border-b border-gray-600 animate-pulse">
+                <div class="h-4 bg-gray-600 rounded w-8"></div>
+              </td>
+              <td class="py-2 px-4 border-b border-gray-600 animate-pulse">
+                <div class="h-4 bg-gray-600 rounded w-20"></div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Liste des blocs -->
+    <div class="space-y-6">
+      <h2 class="text-2xl font-bold text-blue-400">Tous les blocs</h2>
+      
+      {{range $index, $block := .Blocks}}
+      <div class="block-card bg-gray-800 rounded-lg p-6 shadow-lg">
+        <div class="flex flex-col md:flex-row md:justify-between mb-4">
+          <div>
+            <h3 class="text-xl font-bold text-blue-400">Bloc #{{$block.Index}}</h3>
+            <p class="text-sm text-gray-400">{{$block.Timestamp}}</p>
+          </div>
+          <div class="mt-2 md:mt-0 flex items-center">
+            {{if $block.Miner}}
+            <span class="text-amber-400 bg-amber-900 rounded-full px-3 py-1 text-sm font-semibold mr-2">
+              ⛏️ Miné par: {{$block.Miner}}
+            </span>
+            {{end}}
+            <span class="text-green-400 bg-green-900 rounded-full px-3 py-1 text-sm font-semibold">
+              Validé ✓
+            </span>
+          </div>
+        </div>
+        
+        <div class="mb-4">
+          <h4 class="text-sm font-semibold text-gray-400 mb-1">Hash</h4>
+          <p class="font-mono text-sm break-all bg-black p-2 rounded border border-blue-900">{{$block.Hash}}</p>
+        </div>
+        
+        <div class="mb-4">
+          <h4 class="text-sm font-semibold text-gray-400 mb-1">Hash Précédent</h4>
+          <p class="font-mono text-sm break-all">{{if eq $block.Index 0}}Genesis Block - Pas de hash précédent{{else}}{{$block.PrevHash}}{{end}}</p>
+        </div>
+        
+        <div class="mb-4">
+          <h4 class="text-sm font-semibold text-gray-400 mb-1">Nonce</h4>
+          <p>{{$block.Nonce}}</p>
+        </div>
+        
+        <div>
+          <h4 class="text-sm font-semibold text-gray-400 mb-1">Données</h4>
+          <div class="bg-gray-700 p-3 rounded font-mono text-sm whitespace-pre-wrap break-all max-h-36 overflow-y-auto">{{$block.Data}}</div>
+        </div>
+        
+        {{if $block.MiningInfo}}
+        <div class="mt-4 pt-3 border-t border-gray-700">
+          <h4 class="text-sm font-semibold text-amber-400 mb-1">Informations de minage</h4>
+          <div class="bg-gray-900 p-3 rounded text-sm">
+            <div class="mining-info" data-mining-info="{{$block.MiningInfo}}">
+              <!-- Les informations de minage seront affichées ici par JavaScript -->
+              <div class="flex flex-wrap gap-3">
+                <span class="inline-flex items-center bg-amber-900/50 px-2 py-1 rounded">
+                  <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20"><path d="M13 7H7v6h6V7z"/></svg>
+                  Chargement...
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+        {{end}}
+        
+        <!-- Bouton pour décoder les données si c'est un message -->
+        {{if ne $block.Index 0}}
+        <button class="decode-message mt-2 text-blue-400 hover:text-blue-300 text-sm" data-block-index="{{$block.Index}}">
+          Décoder comme message
+        </button>
+        <div class="decoded-message mt-2 bg-blue-900 p-3 rounded hidden" id="decoded-message-{{$block.Index}}">
+          <!-- Le contenu sera ajouté dynamiquement par JavaScript -->
+        </div>
+        {{end}}
+      </div>
+      {{end}}
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Gestion du formulaire d'ajout de bloc
+      const form = document.getElementById('add-block-form');
+      const miningStatus = document.getElementById('mining-status');
+      const successMessage = document.getElementById('success-message');
+
+      form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const blockData = document.getElementById('block-data').value;
+        if (!blockData.trim()) {
+          alert('Veuillez entrer des données pour le bloc');
+          return;
+        }
+        
+        // Afficher le statut de minage
+        miningStatus.classList.remove('hidden');
+        successMessage.classList.add('hidden');
+        
+        // Envoyer la requête pour ajouter un bloc
+        fetch('/blockchain', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ data: blockData })
+        })
+        .then(response => {
+          if (response.ok) {
+            miningStatus.classList.add('hidden');
+            successMessage.classList.remove('hidden');
+            setTimeout(() => {
+              window.location.reload();
+            }, 1500);
+          } else {
+            throw new Error('Erreur lors de l\'ajout du bloc');
+          }
+        })
+        .catch(error => {
+          console.error('Erreur:', error);
+          miningStatus.classList.add('hidden');
+          alert('Erreur lors de l\'ajout du bloc: ' + error.message);
+        });
+      });
+
+      // Gestion du décodage des messages
+      document.querySelectorAll('.decode-message').forEach(button => {
+        button.addEventListener('click', function() {
+          const blockIndex = this.getAttribute('data-block-index');
+          const messageContainer = document.getElementById(`decoded-message-${blockIndex}`);
+          
+          // Si le conteneur est déjà visible, le cacher
+          if (!messageContainer.classList.contains('hidden')) {
+            messageContainer.classList.add('hidden');
+            return;
+          }
+          
+          // Récupérer les données du bloc
+          const blockData = this.closest('.block-card').querySelector('.bg-gray-700').textContent;
+          
+          try {
+            // Essayer de décoder les données comme un JSON
+            const json = JSON.parse(blockData);
+            
+            // Vérifier si c'est un message
+            if (json.id && json.sender && json.recipient && json.content) {
+              // C'est un message, afficher le contenu décodé
+              const decodedHTML = `
+                <div>
+                  <div class="text-sm mb-1"><strong>De:</strong> ${json.sender}</div>
+                  <div class="text-sm mb-1"><strong>À:</strong> ${json.recipient}</div>
+                  <div class="text-sm mb-1"><strong>Date:</strong> ${new Date(json.timestamp).toLocaleString()}</div>
+                  <div class="text-sm mb-3"><strong>Hash:</strong> <span class="font-mono text-xs">${json.content_hash}</span></div>
+                  <div class="text-sm p-2 bg-blue-800 rounded"><strong>Message:</strong> ${json.content}</div>
+                </div>
+              `;
+              
+              messageContainer.innerHTML = decodedHTML;
+              messageContainer.classList.remove('hidden');
+            } else {
+              messageContainer.innerHTML = '<div class="text-yellow-400">Ce bloc ne contient pas un message valide.</div>';
+              messageContainer.classList.remove('hidden');
+            }
+          } catch (e) {
+            // Ce n'est pas un JSON valide
+            messageContainer.innerHTML = '<div class="text-yellow-400">Les données ne peuvent pas être décodées comme un message.</div>';
+            messageContainer.classList.remove('hidden');
+          }
+        });
+      });
+    });
+  </script>
+</body>
+</html> 

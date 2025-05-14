@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Messages | CryptoChain Go</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/static/js/messages.js" defer></script>
+</head>
+<body class="bg-gradient-to-r from-gray-900 to-black text-white min-h-screen">
+  <!-- Barre de navigation -->
+  <nav class="flex justify-between items-center p-4 bg-gray-800 shadow-lg">
+    <div class="flex items-center">
+      <div class="text-2xl font-bold text-blue-400">CryptoChain Go</div>
+      <div class="ml-6 flex space-x-4">
+        <a href="/home" class="text-gray-300 hover:text-white transition">Accueil</a>
+        <a href="/messages" class="text-blue-400 border-b-2 border-blue-400">Messages</a>
+        <a href="/blockchain" class="text-gray-300 hover:text-white transition">Blockchain</a>
+        <a href="/stats" class="text-gray-300 hover:text-white transition">Stats</a>
+      </div>
+    </div>
+    <div>
+      <span class="mr-4">Bonjour, <span id="username" class="font-bold">{{.Username}}</span></span>
+      <a href="/logout" class="px-4 py-2 bg-red-500 rounded hover:bg-red-600 transition">Déconnexion</a>
+    </div>
+  </nav>
+
+  <!-- Contenu principal -->
+  <div class="container mx-auto p-4 flex flex-col md:flex-row">
+    <!-- Liste des conversations -->
+    <div class="w-full md:w-1/3 bg-gray-800 rounded-lg shadow-lg p-4 mb-4 md:mb-0 md:mr-4">
+      <h2 class="text-xl font-bold mb-4 text-blue-400">Conversations</h2>
+      <div class="mb-4">
+        <input type="text" id="search-user" placeholder="Rechercher un utilisateur..." class="w-full px-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+      </div>
+      <div id="conversations-list" class="space-y-2 max-h-96 overflow-y-auto">
+        {{range .Conversations}}
+        <div class="conversation-item p-2 rounded cursor-pointer hover:bg-gray-700 transition" data-username="{{.Username}}">
+          <div class="font-bold">{{.Username}}</div>
+          <div class="text-sm text-gray-400 truncate">{{.LastMessage}}</div>
+        </div>
+        {{end}}
+      </div>
+    </div>
+
+    <!-- Zone de messages -->
+    <div class="w-full md:w-2/3 bg-gray-800 rounded-lg shadow-lg p-4 flex flex-col">
+      <div id="conversation-header" class="pb-2 mb-4 border-b border-gray-700">
+        <h2 class="text-xl font-bold text-blue-400">
+          {{if .CurrentRecipient}}
+          Conversation avec <span id="current-recipient">{{.CurrentRecipient}}</span>
+          {{else}}
+          Sélectionnez une conversation
+          {{end}}
+        </h2>
+      </div>
+
+      <!-- Affichage des messages -->
+      <div id="messages-container" class="flex-grow overflow-y-auto mb-4 space-y-2 min-h-[300px] max-h-96">
+        {{if .Messages}}
+          {{range .Messages}}
+            <div class="message p-2 rounded {{if eq .Sender $.Username}}sent bg-blue-900 ml-auto mr-2{{else}}received bg-gray-700 ml-2 mr-auto{{end}} max-w-[70%]">
+              <div class="message-content">{{.Content}}</div>
+              <div class="message-timestamp text-xs text-gray-400">{{.FormattedTime}}</div>
+              <div class="message-hash text-xs text-gray-500 truncate" title="{{.ContentHash}}">Hash: {{.ContentHash}}</div>
+            </div>
+          {{end}}
+        {{else}}
+          <div id="no-messages" class="text-center text-gray-400 mt-20 {{if not .CurrentRecipient}}{{else}}hidden{{end}}">
+            Sélectionnez une conversation pour afficher les messages
+          </div>
+          <div id="empty-conversation" class="text-center text-gray-400 mt-20 {{if .CurrentRecipient}}{{else}}hidden{{end}}">
+            Aucun message dans cette conversation. Envoyez le premier !
+          </div>
+        {{end}}
+      </div>
+
+      <!-- Formulaire d'envoi de message -->
+      <form id="message-form" class="{{if not .CurrentRecipient}}opacity-50 pointer-events-none{{end}}">
+        <div class="flex">
+          <input type="text" id="message-content" name="content" placeholder="Écrivez votre message..." class="flex-grow px-4 py-2 bg-gray-700 text-white rounded-l-lg border border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+          <button type="submit" class="px-4 py-2 bg-blue-500 rounded-r-lg hover:bg-blue-600 transition">
+            Envoyer
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Information sur la blockchain -->
+  <div class="container mx-auto mt-6 p-4 bg-gray-800 rounded-lg shadow-lg">
+    <h2 class="text-xl font-bold mb-2 text-blue-400">Information Blockchain</h2>
+    <p class="text-gray-300 mb-2">Tous les messages sont enregistrés de manière sécurisée dans la blockchain avec une preuve cryptographique.</p>
+    <div class="text-sm text-gray-400">
+      <div>Nombre de blocs: <span id="block-count">{{.BlockCount}}</span></div>
+      <div>Dernier hash: <span id="last-hash" class="font-mono">{{.LastHash}}</span></div>
+    </div>
+    <div id="blockchain-updates" class="mt-2 text-green-400 hidden">
+      <div class="flex items-center">
+        <div class="animate-spin mr-2">⚙️</div>
+        <span>Mise à jour de la blockchain en cours...</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notifications -->
+  <div id="notification-area" class="fixed bottom-4 right-4 space-y-2">
+    <!-- Les notifications seront ajoutées ici dynamiquement -->
+  </div>
+
+  <!-- Script pour la gestion des WebSockets et messages en temps réel -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const username = document.getElementById('username').textContent;
+      const recipientElem = document.getElementById('current-recipient');
+      const recipient = recipientElem ? recipientElem.textContent : null;
+      const messagesContainer = document.getElementById('messages-container');
+      const blockchainUpdates = document.getElementById('blockchain-updates');
+      const blockCount = document.getElementById('block-count');
+      const lastHash = document.getElementById('last-hash');
+      const notificationArea = document.getElementById('notification-area');
+      
+      // Fonction pour créer un élément de message
+      function createMessageElement(message, isSelf) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message p-2 rounded ${isSelf ? 'sent bg-blue-900 ml-auto mr-2' : 'received bg-gray-700 ml-2 mr-auto'} max-w-[70%]`;
+        
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'message-content';
+        contentDiv.textContent = message.content;
+        
+        const timestampDiv = document.createElement('div');
+        timestampDiv.className = 'message-timestamp text-xs text-gray-400';
+        const date = new Date(message.timestamp);
+        timestampDiv.textContent = `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
+        
+        const hashDiv = document.createElement('div');
+        hashDiv.className = 'message-hash text-xs text-gray-500 truncate';
+        hashDiv.title = message.content_hash;
+        hashDiv.textContent = `Hash: ${message.content_hash}`;
+        
+        messageDiv.appendChild(contentDiv);
+        messageDiv.appendChild(timestampDiv);
+        messageDiv.appendChild(hashDiv);
+        
+        return messageDiv;
+      }
+      
+      // Fonction pour ajouter une notification
+      function showNotification(message, type = 'info') {
+        const notification = document.createElement('div');
+        notification.className = `p-3 rounded shadow-lg ${type === 'info' ? 'bg-blue-500' : type === 'success' ? 'bg-green-500' : 'bg-red-500'}`;
+        notification.textContent = message;
+        
+        notificationArea.appendChild(notification);
+        
+        setTimeout(() => {
+          notification.classList.add('opacity-0', 'transition-opacity');
+          setTimeout(() => {
+            notification.remove();
+          }, 500);
+        }, 3000);
+      }
+      
+      // Établir une connexion WebSocket
+      let ws;
+      function connectWebSocket() {
+        const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+        const wsUrl = `${protocol}${window.location.host}/ws`;
+        
+        ws = new WebSocket(wsUrl);
+        
+        ws.onopen = function() {
+          console.log('Connexion WebSocket établie');
+          showNotification('Connexion en temps réel établie', 'success');
+        };
+        
+        ws.onmessage = function(event) {
+          const data = JSON.parse(event.data);
+          console.log('Message reçu:', data);
+          
+          switch(data.type) {
+            case 'connected':
+              // Connexion établie
+              break;
+              
+            case 'new_message':
+              // Nouveau message reçu
+              if (
+                (data.data.sender === username && data.data.recipient === recipient) ||
+                (data.data.sender === recipient && data.data.recipient === username)
+              ) {
+                const isSelf = data.data.sender === username;
+                const messageElem = createMessageElement(data.data, isSelf);
+                
+                // Trouver l'emplacement d'insertion chronologique (par simplicité, on ajoute à la fin)
+                messagesContainer.appendChild(messageElem);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                
+                // Cacher les messages "pas de conversation" si nécessaire
+                document.getElementById('no-messages').classList.add('hidden');
+                document.getElementById('empty-conversation').classList.add('hidden');
+              }
+              
+              // Afficher une notification pour les messages d'autres conversations
+              if (data.data.sender !== username && data.data.recipient === username && data.data.sender !== recipient) {
+                showNotification(`Nouveau message de ${data.data.sender}`, 'info');
+              }
+              break;
+              
+            case 'blockchain_update':
+              // Mise à jour de la blockchain
+              blockchainUpdates.classList.remove('hidden');
+              
+              // Mettre à jour les informations après un court délai
+              setTimeout(() => {
+                // Incrémenter le compteur de blocs
+                blockCount.textContent = parseInt(blockCount.textContent) + 1;
+                // Mettre à jour le hash
+                lastHash.textContent = data.data.block_hash;
+                
+                // Cacher l'indicateur de mise à jour
+                blockchainUpdates.classList.add('hidden');
+              }, 1500);
+              break;
+              
+            case 'message_sent':
+              // Confirmation d'envoi de message
+              showNotification('Message envoyé et ajouté à la blockchain', 'success');
+              break;
+          }
+        };
+        
+        ws.onclose = function() {
+          console.log('Connexion WebSocket fermée');
+          showNotification('Connexion en temps réel perdue. Tentative de reconnexion...', 'error');
+          
+          // Tentative de reconnexion après un délai
+          setTimeout(connectWebSocket, 5000);
+        };
+        
+        ws.onerror = function(error) {
+          console.error('Erreur WebSocket:', error);
+          showNotification('Erreur de connexion en temps réel', 'error');
+        };
+      }
+      
+      // Connexion au WebSocket
+      connectWebSocket();
+      
+      // Gestion de l'envoi de message par WebSocket
+      document.getElementById('message-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const contentInput = document.getElementById('message-content');
+        const content = contentInput.value.trim();
+        const recipient = document.getElementById('current-recipient')?.textContent;
+        
+        if (!content || !recipient) return;
+        
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          // Envoyer via WebSocket
+          ws.send(JSON.stringify({
+            type: 'send_message',
+            data: JSON.stringify({
+              recipient: recipient,
+              content: content
+            })
+          }));
+          
+          // Afficher immédiatement le message dans l'interface
+          const messageData = {
+            sender: username,
+            recipient: recipient,
+            content: content,
+            content_hash: 'En cours de calcul...',
+            timestamp: new Date().toISOString()
+          };
+          
+          const messageElem = createMessageElement(messageData, true);
+          messagesContainer.appendChild(messageElem);
+          messagesContainer.scrollTop = messagesContainer.scrollHeight;
+          
+          // Réinitialiser le champ de saisie
+          contentInput.value = '';
+        } else {
+          // Fallback à l'API REST en cas de problème avec WebSocket
+          fetch('/api/messages', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              recipient: recipient,
+              content: content
+            })
+          }).then(response => {
+            if (response.ok) {
+              window.location.reload();
+            } else {
+              showNotification('Erreur lors de l\'envoi du message', 'error');
+            }
+          });
+        }
+      });
+      
+      // Événement pour sélectionner une conversation
+      document.querySelectorAll('.conversation-item').forEach(item => {
+        item.addEventListener('click', function() {
+          const username = this.getAttribute('data-username');
+          window.location.href = `/messages?recipient=${username}`;
+        });
+      });
+    });
+  </script>
+</body>
+</html> 
